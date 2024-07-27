@@ -3,6 +3,7 @@ import webbrowser
 import requests
 from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
 
 # Replace these values with your app's client ID, client secret, and redirect URI
 CLIENT_ID = os.environ['POTATOTIME_MSFT_CLIENT_ID']
@@ -11,7 +12,7 @@ REDIRECT_URI = 'http://localhost:8080'
 AUTHORITY = 'https://login.microsoftonline.com/common'
 AUTHORIZATION_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/authorize'
 TOKEN_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/token'
-SCOPES = ['Calendars.Read']
+SCOPES = ['Calendars.ReadWrite']
 
 class OAuthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -50,19 +51,82 @@ def get_token(auth_code):
     response.raise_for_status()
     return response.json()
 
+def create_event(access_token, event_data):
+    url = 'https://graph.microsoft.com/v1.0/me/events'
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(url, headers=headers, json=event_data)
+    response.raise_for_status()
+    return response.json()
+
+def update_event(access_token, event_id, update_data):
+    url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.patch(url, headers=headers, json=update_data)
+    response.raise_for_status()
+    return response.json()
+
+def delete_event(access_token, event_id):
+    url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    response.raise_for_status()
+    return response.status_code
+
 def main():
-    auth_code = get_auth_code()
-    token_response = get_token(auth_code)
-    access_token = token_response['access_token']
-    print(f'Access token: {access_token}')
+    if os.path.exists('msft.json'):
+        with open('msft.json', 'r') as f:
+            access_token = json.loads(f.read())['access_token']
+    else:
+        auth_code = get_auth_code()
+        token_response = get_token(auth_code)
+        access_token = token_response['access_token']
+        with open('msft.json', 'w') as f:
+            f.write(json.dumps({'access_token': access_token}))
 
     # Now you can use the access token to access the Outlook Calendar API
-    calendar_api_url = 'https://graph.microsoft.com/v1.0/me/calendar/events'
+    calendar_api_url = 'https://graph.microsoft.com/v1.0/me/events'
     headers = {'Authorization': f'Bearer {access_token}'}
-    events_response = requests.get(calendar_api_url, headers=headers)
-    events_response.raise_for_status()
-    events = events_response.json()
-    print(events)
+    
+    # Example: Create an event
+    event_data = {
+        "subject": "Discuss the new project",
+        "body": {
+            "contentType": "HTML",
+            "content": "Let's discuss the new project on Thursday."
+        },
+        "start": {
+            "dateTime": "2024-08-01T10:00:00",
+            "timeZone": "Pacific Standard Time"
+        },
+        "end": {
+            "dateTime": "2024-08-01T11:00:00",
+            "timeZone": "Pacific Standard Time"
+        },
+        "location": {
+            "displayName": "Conference Room"
+        }
+    }
+    created_event = create_event(access_token, event_data)
+    print(f'Created event: {created_event["webLink"]}')
+
+    # Example: Update the created event
+    update_data = {
+        "subject": "Discuss the new project - Updated",
+    }
+    updated_event = update_event(access_token, created_event['id'], update_data)
+    print(f'Updated event: {updated_event["webLink"]}')
+
+    # Example: Delete the created event
+    delete_status = delete_event(access_token, created_event['id'])
+    print(f'Delete status: {delete_status}')
 
 if __name__ == '__main__':
     main()

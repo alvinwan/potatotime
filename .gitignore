@@ -1,5 +1,4 @@
-credentials.json
-token.json
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
