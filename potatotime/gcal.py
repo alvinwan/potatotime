@@ -1,5 +1,6 @@
 import datetime
 import os.path
+from googleapiclient import errors
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -13,6 +14,57 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/calendar.readonly",
 ]
+
+def create_event(service):
+    event = {
+        'summary': 'Sample Event',
+        'location': '800 Howard St., San Francisco, CA 94103',
+        'description': 'A chance to hear more about Google\'s developer products.',
+        'start': {
+            'dateTime': '2024-08-01T09:00:00-07:00',
+            'timeZone': 'America/Los_Angeles',
+        },
+        'end': {
+            'dateTime': '2024-08-01T17:00:00-07:00',
+            'timeZone': 'America/Los_Angeles',
+        },
+        'recurrence': [
+            'RRULE:FREQ=WEEKLY;COUNT=10'
+        ],
+        # 'attendees': [
+        #     {'email': 'example@example.com'},
+        # ],
+        'reminders': {
+            'useDefault': False,
+            'overrides': [
+                {'method': 'email', 'minutes': 24 * 60},
+                {'method': 'popup', 'minutes': 10},
+            ],
+        },
+    }
+
+    event = service.events().insert(calendarId='primary', body=event).execute()
+    print(f'Event created: {event.get("htmlLink")}')
+    return event['id']
+
+def edit_event(service, event_id):
+    event = service.events().get(calendarId='primary', eventId=event_id).execute()
+
+    event['summary'] = 'Updated Sample Event'
+    event['location'] = '500 Terry A Francois Blvd, San Francisco, CA 94158'
+    event['description'] = 'A chance to hear more about Google\'s updated developer products.'
+    event['start']['dateTime'] = '2024-08-02T10:00:00-07:00'
+    event['end']['dateTime'] = '2024-08-02T18:00:00-07:00'
+
+    updated_event = service.events().update(calendarId='primary', eventId=event['id'], body=event).execute()
+    print(f'Event updated: {updated_event.get("htmlLink")}')
+
+def delete_event(service, event_id):
+    try:
+        service.events().delete(calendarId='primary', eventId=event_id).execute()
+        print('Event deleted.')
+    except errors.HttpError as error:
+        print(f'An error occurred: {error}')
 
 def main():
     creds = None
@@ -48,6 +100,16 @@ def main():
     for event in events:
         start = event['start'].get('dateTime', event['start'].get('date'))
         print(start, event['summary'])
+
+    # Create an event
+    event_id = create_event(service)
+
+    # Edit the event
+    edit_event(service, event_id)
+
+    # Delete the event
+    delete_event(service, event_id)
+    
 
 if __name__ == '__main__':
     main()
