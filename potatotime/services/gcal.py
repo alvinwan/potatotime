@@ -25,7 +25,8 @@ class GoogleCalendarEvent(CalendarEvent):
             start=datetime.datetime.fromisoformat(event_data['start']['dateTime']),
             end=datetime.datetime.fromisoformat(event_data['end']['dateTime']),
             url=event_data['htmlLink'],
-            recurrence=event_data.get('recurrence', [])
+            recurrence=event_data.get('recurrence', []),
+            is_copy='potatotime' in event_data.get('extendedProperties', {}).get('private', {})
         )
 
 
@@ -63,19 +64,25 @@ class GoogleCalendarService(CalendarServiceInterface):
         events = events_result.get('items', [])
         return events
 
-    def create_event(self, event_data):
+    def create_event(self, event_data, is_copy: bool=True):
+        if is_copy:  # NOTE: Should only be False during testing
+            event_data['extendedProperties'] = {'private': {'potatotime': '1'}}
         event = self.service.events().insert(calendarId='primary', body=event_data).execute()
         print(f'Event created: {event.get("htmlLink")}')
         return event
 
     def update_event(self, event_id, update_data):
         event = self.service.events().get(calendarId='primary', eventId=event_id).execute()
+        assert 'potatotime' in event.get('extendedProperties', {}).get('private', {})
         event.update(update_data)
         updated_event = self.service.events().update(calendarId='primary', eventId=event_id, body=event).execute()
         print(f'Event updated: {updated_event.get("htmlLink")}')
         return updated_event
 
-    def delete_event(self, event_id):
+    def delete_event(self, event_id, is_copy: bool=True):
+        if is_copy:  # NOTE: Should only be False during testing
+            event = self.service.events().get(calendarId='primary', eventId=event_id).execute()
+            assert 'potatotime' in event.get('extendedProperties', {}).get('private', {})
         try:
             self.service.events().delete(calendarId='primary', eventId=event_id).execute()
             print(f'Event "{event_id}" deleted.')

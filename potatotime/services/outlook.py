@@ -51,6 +51,7 @@ class MicrosoftCalendarEvent(CalendarEvent):
             start=start_time,
             end=end_time,
             url=event_data['webLink'],
+            is_copy='potatotime' in event_data.get('singleValueExtendedProperties', [{}])[0].get('id', '')
         )
 
 

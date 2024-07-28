@@ -26,6 +26,10 @@ def synchronize_from_to(
 ) -> List[str]:
     new_events = []
     for event1 in events1:
+        # Do not copy any events that were created by potatotime
+        if event1.is_copy:
+            continue
+        
         # TODO: distinguish between stubs and fully materialized events with ids
         event2_data = calendar2.CalendarEvent.from_(event1).serialize()
         event2_data.pop('id')  # stub would not have had this id
