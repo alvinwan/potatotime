@@ -7,10 +7,6 @@ class CalendarServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def get_event(self, event_id):
-        pass
-
-    @abstractmethod
     def get_events(self):
         pass
 

@@ -38,23 +38,14 @@ class GoogleCalendarService(CalendarServiceInterface):
             with open('goog.json', 'w') as token:
                 token.write(creds.to_json())
         self.service = build('calendar', 'v3', credentials=creds)
-
-    def get_event(self, event_id):
-        return self.service.events().get(calendarId='primary', eventId=event_id).execute()
     
     def get_events(self):
         now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        print('Getting the upcoming 10 events')
         events_result = self.service.events().list(calendarId='primary', timeMin=now,
-                                            maxResults=10, singleEvents=True,
-                                            orderBy='startTime').execute()
+                                                   maxResults=100, singleEvents=True,
+                                                   orderBy='startTime').execute()
         events = events_result.get('items', [])
-
-        if not events:
-            print('No upcoming events found.')
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            print(start, event['summary'])
+        return events
 
     def create_event(self, event_data):
         event = self.service.events().insert(calendarId='primary', body=event_data).execute()
@@ -62,7 +53,7 @@ class GoogleCalendarService(CalendarServiceInterface):
         return event['id']
 
     def update_event(self, event_id, update_data):
-        event = self.get_event(event_id)
+        event = self.service.events().get(calendarId='primary', eventId=event_id).execute()
         event.update(update_data)
         updated_event = self.service.events().update(calendarId='primary', eventId=event_id, body=event).execute()
         print(f'Event updated: {updated_event.get("htmlLink")}')
@@ -70,6 +61,6 @@ class GoogleCalendarService(CalendarServiceInterface):
     def delete_event(self, event_id):
         try:
             self.service.events().delete(calendarId='primary', eventId=event_id).execute()
-            print('Event deleted.')
+            print(f'Event "{event_id}" deleted.')
         except errors.HttpError as error:
             print(f'An error occurred: {error}')
