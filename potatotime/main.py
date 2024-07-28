@@ -1,4 +1,5 @@
 from services.gcal import GoogleCalendarService
+from services.outlook import MicrosoftCalendarService
 
 
 if __name__ == '__main__':
@@ -45,3 +46,36 @@ if __name__ == '__main__':
     }
     google_service.update_event(google_event_id, google_update_data)
     google_service.delete_event(google_event_id)
+
+    for event in google_service.get_events():
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        print(start, event['summary'])
+
+    microsoft_service = MicrosoftCalendarService()
+    microsoft_service.authorize()
+    
+    microsoft_event_data = {
+        "subject": "Discuss the new project",
+        "body": {
+            "contentType": "HTML",
+            "content": "Let's discuss the new project on Thursday."
+        },
+        "start": {
+            "dateTime": "2024-08-01T10:00:00",
+            "timeZone": "Pacific Standard Time"
+        },
+        "end": {
+            "dateTime": "2024-08-01T11:00:00",
+            "timeZone": "Pacific Standard Time"
+        },
+        "location": {
+            "displayName": "Conference Room"
+        }
+    }
+
+    microsoft_event_id = microsoft_service.create_event(microsoft_event_data)
+    microsoft_update_data = {
+        "subject": "Discuss the new project - Updated",
+    }
+    microsoft_service.update_event(microsoft_event_id, microsoft_update_data)
+    microsoft_service.delete_event(microsoft_event_id)
