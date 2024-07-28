@@ -17,7 +17,46 @@ AUTHORIZATION_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/authorize'
 TOKEN_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/token'
 SCOPES = ['Calendars.ReadWrite']
 
+
+class MicrosoftCalendarEvent(CalendarEvent):
+    # TODO: Add support for recurrence rules
+
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'start': {
+                'dateTime': self.start.isoformat(),
+                'timeZone': self.start.tzinfo.tzname(self.start) if self.start.tzinfo else 'UTC'
+            },
+            'end': {
+                'dateTime': self.end.isoformat(),
+                'timeZone': self.end.tzinfo.tzname(self.end) if self.end.tzinfo else 'UTC'
+            },
+            'webLink': self.url,
+        }
+
+    @staticmethod
+    def deserialize(event_data: dict):
+        start_time = datetime.datetime.fromisoformat(event_data['start']['dateTime'])
+        end_time = datetime.datetime.fromisoformat(event_data['end']['dateTime'])
+        
+        start_timezone = pytz.timezone(event_data['start']['timeZone'])
+        end_timezone = pytz.timezone(event_data['end']['timeZone'])
+
+        start_time = start_time.replace(tzinfo=start_timezone)
+        end_time = end_time.replace(tzinfo=end_timezone)
+
+        return MicrosoftCalendarEvent(
+            id=event_data['id'],
+            start=start_time,
+            end=end_time,
+            url=event_data['webLink'],
+        )
+
+
 class MicrosoftCalendarService(CalendarServiceInterface):
+    CalendarEvent = MicrosoftCalendarEvent
+
     def __init__(self):
         self.client_id = os.environ['POTATOTIME_MSFT_CLIENT_ID']
         self.client_secret = os.environ['POTATOTIME_MSFT_CLIENT_SECRET']
@@ -130,39 +169,3 @@ class OAuthHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(b'Authorization failed.')
-
-
-class MicrosoftCalendarEvent(CalendarEvent):
-    # TODO: Add support for recurrence rules
-
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'start': {
-                'dateTime': self.start.isoformat(),
-                'timeZone': self.start.tzinfo.tzname(self.start) if self.start.tzinfo else 'UTC'
-            },
-            'end': {
-                'dateTime': self.end.isoformat(),
-                'timeZone': self.end.tzinfo.tzname(self.end) if self.end.tzinfo else 'UTC'
-            },
-            'webLink': self.url,
-        }
-
-    @staticmethod
-    def deserialize(event_data: dict):
-        start_time = datetime.datetime.fromisoformat(event_data['start']['dateTime'])
-        end_time = datetime.datetime.fromisoformat(event_data['end']['dateTime'])
-        
-        start_timezone = pytz.timezone(event_data['start']['timeZone'])
-        end_timezone = pytz.timezone(event_data['end']['timeZone'])
-
-        start_time = start_time.replace(tzinfo=start_timezone)
-        end_time = end_time.replace(tzinfo=end_timezone)
-
-        return MicrosoftCalendarEvent(
-            id=event_data['id'],
-            start=start_time,
-            end=end_time,
-            url=event_data['webLink'],
-        )

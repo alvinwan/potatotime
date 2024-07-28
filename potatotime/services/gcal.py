@@ -8,7 +8,30 @@ from googleapiclient.discovery import build
 from . import CalendarServiceInterface, CalendarEvent
 
 
+class GoogleCalendarEvent(CalendarEvent):
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'start': {'dateTime': self.start.isoformat()},
+            'end': {'dateTime': self.end.isoformat()},
+            'recurrence': self.recurrence,
+            'htmlLink': self.url
+        }
+
+    @staticmethod
+    def deserialize(event_data: dict):
+        return GoogleCalendarEvent(
+            id=event_data.get('id'),
+            start=datetime.datetime.fromisoformat(event_data['start']['dateTime']),
+            end=datetime.datetime.fromisoformat(event_data['end']['dateTime']),
+            url=event_data['htmlLink'],
+            recurrence=event_data.get('recurrence', [])
+        )
+
+
 class GoogleCalendarService(CalendarServiceInterface):
+    CalendarEvent = GoogleCalendarEvent
+    
     def __init__(self):
         # If modifying these SCOPES, delete the file goog.json.
         self.scopes = [
@@ -58,24 +81,3 @@ class GoogleCalendarService(CalendarServiceInterface):
             print(f'Event "{event_id}" deleted.')
         except errors.HttpError as error:
             print(f'An error occurred: {error}')
-
-
-class GoogleCalendarEvent(CalendarEvent):
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'start': {'dateTime': self.start.isoformat()},
-            'end': {'dateTime': self.end.isoformat()},
-            'recurrence': self.recurrence,
-            'htmlLink': self.url
-        }
-
-    @staticmethod
-    def deserialize(event_data: dict):
-        return GoogleCalendarEvent(
-            id=event_data.get('id'),
-            start=datetime.datetime.fromisoformat(event_data['start']['dateTime']),
-            end=datetime.datetime.fromisoformat(event_data['end']['dateTime']),
-            url=event_data['htmlLink'],
-            recurrence=event_data.get('recurrence', [])
-        )

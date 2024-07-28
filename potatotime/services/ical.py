@@ -5,7 +5,32 @@ import datetime
 import os
 from . import CalendarServiceInterface, CalendarEvent
 
+
+class AppleCalendarEvent(CalendarEvent):
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'start': self.start,
+            'end': self.end
+        }
+
+    @staticmethod
+    def deserialize(event):
+        if isinstance(event, dict):
+            return AppleCalendarEvent(
+                start=event['start'],
+                end=event['end'],
+            )
+        return AppleCalendarEvent(
+            id=event.instance.vevent.uid.value,
+            start=event.instance.vevent.dtstart.value,
+            end=event.instance.vevent.dtend.value,
+        )
+
+
 class AppleCalendarService(CalendarServiceInterface):
+    CalendarEvent = AppleCalendarEvent
+    
     def __init__(self):
         self.client = caldav.DAVClient(
             url='https://caldav.icloud.com/',
@@ -72,25 +97,3 @@ END:VCALENDAR
         calendar = self.calendars[0]
         now = datetime.datetime.utcnow()
         return calendar.date_search(start=now, end=now + datetime.timedelta(days=365))  # Fetch events for the next year
-
-
-class AppleCalendarEvent(CalendarEvent):
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'start': self.start,
-            'end': self.end
-        }
-
-    @staticmethod
-    def deserialize(event):
-        if isinstance(event, dict):
-            return AppleCalendarEvent(
-                start=event['start'],
-                end=event['end'],
-            )
-        return AppleCalendarEvent(
-            id=event.instance.vevent.uid.value,
-            start=event.instance.vevent.dtstart.value,
-            end=event.instance.vevent.dtend.value,
-        )
