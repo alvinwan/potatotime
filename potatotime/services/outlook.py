@@ -113,7 +113,8 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         params = {
             '$filter': f'start/dateTime ge \'{datetime.datetime.utcnow().isoformat()}\'',
             '$orderby': 'start/dateTime',
-            '$top': 100
+            '$top': 100,
+            '$expand': "singleValueExtendedProperties($filter=id eq 'String {66f5a359-4659-4830-9070-00040ec6ac6e} Name potatotime')",
         }
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
@@ -126,6 +127,10 @@ class MicrosoftCalendarService(CalendarServiceInterface):
             'Authorization': f'Bearer {self.access_token}',
             'Content-Type': 'application/json'
         }
+        event_data["singleValueExtendedProperties"] = [{
+            "id": "String {66f5a359-4659-4830-9070-00040ec6ac6e} Name potatotime",
+            "value": "1"
+        }]
         response = requests.post(url, headers=headers, json=event_data)
         response.raise_for_status()
         event = response.json()
@@ -133,6 +138,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         return event
 
     def update_event(self, event_id, update_data):
+        # TODO: check the event is potatotime-created
         url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
         headers = {
             'Authorization': f'Bearer {self.access_token}',
@@ -145,6 +151,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         return event
 
     def delete_event(self, event_id):
+        # TODO: check the event is potatotime-created
         url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
         headers = {
             'Authorization': f'Bearer {self.access_token}'
