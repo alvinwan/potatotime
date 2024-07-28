@@ -1,11 +1,11 @@
-from services.gcal import GoogleCalendarService
-from services.outlook import MicrosoftCalendarService
-from services.ical import AppleCalendarService
+from potatotime.services.gcal import GoogleCalendarService
+from potatotime.services.outlook import MicrosoftCalendarService
+from potatotime.services.ical import AppleCalendarService
 import datetime
 import pytz
 
 
-if __name__ == '__main__':
+def test_google_service():
     google_service = GoogleCalendarService()
     google_service.authorize()
     
@@ -55,6 +55,8 @@ if __name__ == '__main__':
 
     google_service.delete_event(google_event_id)
 
+
+def test_microsoft_service():
     microsoft_service = MicrosoftCalendarService()
     microsoft_service.authorize()
     
@@ -88,6 +90,8 @@ if __name__ == '__main__':
 
     microsoft_service.delete_event(microsoft_event_id)
 
+
+def test_apple_service():
     apple_service = AppleCalendarService()
     apple_service.authorize()
     
@@ -113,3 +117,10 @@ if __name__ == '__main__':
         print(component.summary.value)
 
     apple_service.delete_event(apple_event_id)
+
+
+if __name__ == '__main__':
+    # TODO: make these into real tests
+    test_google_service()
+    test_microsoft_service()
+    test_apple_service()
