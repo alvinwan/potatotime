@@ -1,12 +1,12 @@
-from potatotime.services.gcal import GoogleCalendarService
+from potatotime.services.gcal import RawGoogleCalendarService, GoogleCalendarService, GoogleCalendarEvent
 from potatotime.services.outlook import MicrosoftCalendarService
 from potatotime.services.ical import AppleCalendarService
 import datetime
 import pytz
 
 
-def test_google_service():
-    google_service = GoogleCalendarService()
+def test_raw_google_service():
+    google_service = RawGoogleCalendarService()
     google_service.authorize()
     
     google_event_data = {
@@ -33,7 +33,7 @@ def test_google_service():
         },
     }
 
-    google_event_id = google_service.create_event(google_event_data)
+    google_event = google_service.create_event(google_event_data)
     google_update_data = {
         'summary': 'Updated Sample Event',
         'location': '500 Terry A Francois Blvd, San Francisco, CA 94158',
@@ -47,13 +47,37 @@ def test_google_service():
             'timeZone': 'America/Los_Angeles',
         },
     }
-    google_service.update_event(google_event_id, google_update_data)
+    google_service.update_event(google_event['id'], google_update_data)
 
     for event in google_service.get_events():
         start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
+        print(start, event.get('summary'))
 
-    google_service.delete_event(google_event_id)
+    google_service.delete_event(google_event['id'])
+
+
+def test_google_service():
+    google_service = GoogleCalendarService()
+    google_service.authorize()
+    
+    google_event_data = GoogleCalendarEvent(
+        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
+        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+        recurrence='RRULE:FREQ=WEEKLY;COUNT=10'
+    )
+
+    google_event = google_service.create_event(google_event_data)
+    google_update_data = GoogleCalendarEvent(
+        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
+        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+        recurrence=''
+    )
+    google_service.update_event(google_event.id, google_update_data)
+
+    for event in google_service.get_events():
+        print(event.id, event.start, event.end)
+
+    google_service.delete_event(google_event.id)
 
 
 def test_microsoft_service():
@@ -121,6 +145,7 @@ def test_apple_service():
 
 if __name__ == '__main__':
     # TODO: make these into real tests
+    test_raw_google_service()
     test_google_service()
     test_microsoft_service()
     test_apple_service()

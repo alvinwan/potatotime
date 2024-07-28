@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
+from typing import List, Optional, Dict
 
 
 class CalendarServiceInterface(ABC):
@@ -20,4 +23,22 @@ class CalendarServiceInterface(ABC):
 
     @abstractmethod
     def delete_event(self, event_id):
+        pass
+
+
+@dataclass
+class CalendarEvent:
+    start: datetime
+    end: datetime
+    id: Optional[str] = None
+    url: Optional[str] = None
+    recurrence: Optional[List[str]] = None
+
+    @abstractmethod
+    def serialize(self) -> dict:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def deserialize(event_data: dict):
         pass

@@ -5,19 +5,12 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from . import CalendarServiceInterface
+from . import CalendarServiceInterface, CalendarEvent
 
 
-# If modifying these SCOPES, delete the file goog.json.
-SCOPES = [
-    "openid",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/calendar.readonly",
-]
-
-class GoogleCalendarService(CalendarServiceInterface):
+class RawGoogleCalendarService(CalendarServiceInterface):
     def __init__(self):
+        # If modifying these SCOPES, delete the file goog.json.
         self.scopes = [
             "openid",
             "https://www.googleapis.com/auth/userinfo.email",
@@ -50,13 +43,14 @@ class GoogleCalendarService(CalendarServiceInterface):
     def create_event(self, event_data):
         event = self.service.events().insert(calendarId='primary', body=event_data).execute()
         print(f'Event created: {event.get("htmlLink")}')
-        return event['id']
+        return event
 
     def update_event(self, event_id, update_data):
         event = self.service.events().get(calendarId='primary', eventId=event_id).execute()
         event.update(update_data)
         updated_event = self.service.events().update(calendarId='primary', eventId=event_id, body=event).execute()
         print(f'Event updated: {updated_event.get("htmlLink")}')
+        return updated_event
 
     def delete_event(self, event_id):
         try:
@@ -64,3 +58,41 @@ class GoogleCalendarService(CalendarServiceInterface):
             print(f'Event "{event_id}" deleted.')
         except errors.HttpError as error:
             print(f'An error occurred: {error}')
+
+
+class GoogleCalendarService(RawGoogleCalendarService):
+    def get_events(self):
+        return [
+            GoogleCalendarEvent.deserialize(event)
+            for event in super().get_events()
+        ]
+    
+    def create_event(self, event):
+        return GoogleCalendarEvent.deserialize(super().create_event(event.serialize()))
+    
+    def update_event(self, event_id, update):
+        return GoogleCalendarEvent.deserialize(super().update_event(event_id, update.serialize()))
+    
+    def delete_event(self, event_id):
+        super().delete_event(event_id)
+
+
+class GoogleCalendarEvent(CalendarEvent):
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'start': {'dateTime': self.start.isoformat()},
+            'end': {'dateTime': self.end.isoformat()},
+            'recurrence': self.recurrence,
+            'url': self.url
+        }
+
+    @staticmethod
+    def deserialize(event_data: dict):
+        return GoogleCalendarEvent(
+            id=event_data.get('id'),
+            start=datetime.datetime.fromisoformat(event_data['start']['dateTime']),
+            end=datetime.datetime.fromisoformat(event_data['end']['dateTime']),
+            url=event_data['htmlLink'],
+            recurrence=event_data.get('recurrence', [])
+        )
