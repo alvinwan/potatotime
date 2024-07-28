@@ -91,7 +91,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         response.raise_for_status()
         event = response.json()
         print(f"Event created: {event['webLink']}")
-        return event['id']
+        return event
 
     def update_event(self, event_id, update_data):
         url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
@@ -103,6 +103,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         response.raise_for_status()
         event = response.json()
         print(f"Event updated: {event['webLink']}")
+        return event
 
     def delete_event(self, event_id):
         url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'

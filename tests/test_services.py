@@ -106,16 +106,16 @@ def test_raw_microsoft_service():
         }
     }
 
-    microsoft_event_id = microsoft_service.create_event(microsoft_event_data)
+    microsoft_event = microsoft_service.create_event(microsoft_event_data)
     microsoft_update_data = {
         "subject": "Discuss the new project - Updated",
     }
-    microsoft_service.update_event(microsoft_event_id, microsoft_update_data)
+    microsoft_service.update_event(microsoft_event['id'], microsoft_update_data)
 
     for event in microsoft_service.get_events():
         print(event['start']['dateTime'], event['subject'])
 
-    microsoft_service.delete_event(microsoft_event_id)
+    microsoft_service.delete_event(microsoft_event['id'])
 
 
 def test_microsoft_service():
@@ -127,18 +127,20 @@ def test_microsoft_service():
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
     ).serialize()
 
-    microsoft_event_id = microsoft_service.create_event(microsoft_event_data)
+    microsoft_event = MicrosoftCalendarEvent.deserialize(
+        microsoft_service.create_event(microsoft_event_data)
+    )
     microsoft_update_data = MicrosoftCalendarEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
     ).serialize()
-    microsoft_service.update_event(microsoft_event_id, microsoft_update_data)
+    microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
 
     for event_data in microsoft_service.get_events():
         event = MicrosoftCalendarEvent.deserialize(event_data)
         print(event.id, event.start, event.end)
 
-    microsoft_service.delete_event(microsoft_event_id)
+    microsoft_service.delete_event(microsoft_event.id)
 
 
 def test_raw_apple_service():
