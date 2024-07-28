@@ -1,12 +1,12 @@
-from potatotime.services.gcal import RawGoogleCalendarService, GoogleCalendarService, GoogleCalendarEvent
-from potatotime.services.outlook import MicrosoftCalendarService
+from potatotime.services.gcal import GoogleCalendarService, GoogleCalendarEvent
+from potatotime.services.outlook import MicrosoftCalendarService, MicrosoftCalendarEvent
 from potatotime.services.ical import AppleCalendarService
 import datetime
 import pytz
 
 
 def test_raw_google_service():
-    google_service = RawGoogleCalendarService()
+    google_service = GoogleCalendarService()
     google_service.authorize()
     
     google_event_data = {
@@ -64,23 +64,26 @@ def test_google_service():
         start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
         end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
         recurrence='RRULE:FREQ=WEEKLY;COUNT=10'
-    )
+    ).serialize()
 
-    google_event = google_service.create_event(google_event_data)
+    google_event = GoogleCalendarEvent.deserialize(
+        google_service.create_event(google_event_data)
+    )
     google_update_data = GoogleCalendarEvent(
         start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
         end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
         recurrence=''
-    )
+    ).serialize()
     google_service.update_event(google_event.id, google_update_data)
 
-    for event in google_service.get_events():
+    for event_data in google_service.get_events():
+        event = GoogleCalendarEvent.deserialize(event_data)
         print(event.id, event.start, event.end)
 
     google_service.delete_event(google_event.id)
 
 
-def test_microsoft_service():
+def test_raw_microsoft_service():
     microsoft_service = MicrosoftCalendarService()
     microsoft_service.authorize()
     
@@ -111,6 +114,30 @@ def test_microsoft_service():
 
     for event in microsoft_service.get_events():
         print(event['start']['dateTime'], event['subject'])
+
+    microsoft_service.delete_event(microsoft_event_id)
+
+
+def test_microsoft_service():
+    microsoft_service = MicrosoftCalendarService()
+    microsoft_service.authorize()
+
+    microsoft_event_data = MicrosoftCalendarEvent(
+        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
+        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+    ).serialize()
+
+    microsoft_event_id = microsoft_service.create_event(microsoft_event_data)
+    microsoft_update_data = MicrosoftCalendarEvent(
+        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
+        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+        recurrence=''
+    ).serialize()
+    microsoft_service.update_event(microsoft_event_id, microsoft_update_data)
+
+    for event_data in microsoft_service.get_events():
+        event = MicrosoftCalendarEvent.deserialize(event_data)
+        print(event.id, event.start, event.end)
 
     microsoft_service.delete_event(microsoft_event_id)
 
@@ -147,5 +174,6 @@ if __name__ == '__main__':
     # TODO: make these into real tests
     test_raw_google_service()
     test_google_service()
+    test_raw_microsoft_service()
     test_microsoft_service()
     test_apple_service()

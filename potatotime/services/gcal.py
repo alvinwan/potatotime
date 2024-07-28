@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 from . import CalendarServiceInterface, CalendarEvent
 
 
-class RawGoogleCalendarService(CalendarServiceInterface):
+class GoogleCalendarService(CalendarServiceInterface):
     def __init__(self):
         # If modifying these SCOPES, delete the file goog.json.
         self.scopes = [
@@ -60,23 +60,6 @@ class RawGoogleCalendarService(CalendarServiceInterface):
             print(f'An error occurred: {error}')
 
 
-class GoogleCalendarService(RawGoogleCalendarService):
-    def get_events(self):
-        return [
-            GoogleCalendarEvent.deserialize(event)
-            for event in super().get_events()
-        ]
-    
-    def create_event(self, event):
-        return GoogleCalendarEvent.deserialize(super().create_event(event.serialize()))
-    
-    def update_event(self, event_id, update):
-        return GoogleCalendarEvent.deserialize(super().update_event(event_id, update.serialize()))
-    
-    def delete_event(self, event_id):
-        super().delete_event(event_id)
-
-
 class GoogleCalendarEvent(CalendarEvent):
     def serialize(self) -> dict:
         return {
@@ -84,7 +67,7 @@ class GoogleCalendarEvent(CalendarEvent):
             'start': {'dateTime': self.start.isoformat()},
             'end': {'dateTime': self.end.isoformat()},
             'recurrence': self.recurrence,
-            'url': self.url
+            'htmlLink': self.url
         }
 
     @staticmethod
