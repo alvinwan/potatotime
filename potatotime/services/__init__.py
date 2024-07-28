@@ -42,3 +42,13 @@ class CalendarEvent:
     @abstractmethod
     def deserialize(event_data: dict):
         pass
+
+    @classmethod
+    def from_(cls, event: 'CalendarEvent'):
+        return cls(
+            start=event.start,
+            end=event.end,
+            id=event.id,
+            url=event.url,
+            recurrence=event.recurrence
+        )
