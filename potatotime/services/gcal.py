@@ -6,6 +6,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from . import CalendarServiceInterface, CalendarEvent
+from typing import Optional
 
 
 class GoogleCalendarEvent(CalendarEvent):
@@ -26,7 +27,7 @@ class GoogleCalendarEvent(CalendarEvent):
             end=datetime.datetime.fromisoformat(event_data['end']['dateTime']),
             url=event_data['htmlLink'],
             recurrence=event_data.get('recurrence', []),
-            is_copy='potatotime' in event_data.get('extendedProperties', {}).get('private', {})
+            source_event_id=event_data.get('extendedProperties', {}).get('private', {}).get('potatotime')
         )
 
 
@@ -64,9 +65,9 @@ class GoogleCalendarService(CalendarServiceInterface):
         events = events_result.get('items', [])
         return events
 
-    def create_event(self, event_data, is_copy: bool=True):
-        if is_copy:  # NOTE: Should only be False during testing
-            event_data['extendedProperties'] = {'private': {'potatotime': '1'}}
+    def create_event(self, event_data: dict, source_event_id: Optional[str]):
+        if source_event_id is not None:  # NOTE: Should only be None during testing
+            event_data['extendedProperties'] = {'private': {'potatotime': source_event_id}}
         event = self.service.events().insert(calendarId='primary', body=event_data).execute()
         print(f'Event created: {event.get("htmlLink")}')
         return event

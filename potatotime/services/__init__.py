@@ -33,7 +33,7 @@ class CalendarEvent:
     id: Optional[str] = None
     url: Optional[str] = None
     recurrence: Optional[List[str]] = None
-    is_copy: bool = False
+    source_event_id: Optional[str] = None
 
     @abstractmethod
     def serialize(self) -> dict:
@@ -52,5 +52,5 @@ class CalendarEvent:
             id=event.id,
             url=event.url,
             recurrence=event.recurrence,
-            is_copy=event.is_copy,
+            source_event_id=event.id, # WARNING: NOT USED
         )

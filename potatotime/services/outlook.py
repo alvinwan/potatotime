@@ -7,6 +7,7 @@ import json
 import datetime
 import pytz
 from . import CalendarServiceInterface, CalendarEvent
+from typing import Optional
 
 # Replace these values with your app's client ID, client secret, and redirect URI
 CLIENT_ID = os.environ['POTATOTIME_MSFT_CLIENT_ID']
@@ -51,7 +52,7 @@ class MicrosoftCalendarEvent(CalendarEvent):
             start=start_time,
             end=end_time,
             url=event_data['webLink'],
-            is_copy='potatotime' in event_data.get('singleValueExtendedProperties', [{}])[0].get('id', '')
+            source_event_id=event_data.get('singleValueExtendedProperties', [{}])[0].get('value')
         )
 
 
@@ -122,7 +123,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         events = response.json().get('value', [])
         return events
 
-    def create_event(self, event_data):
+    def create_event(self, event_data: dict, source_event_id: Optional[str]):
         url = 'https://graph.microsoft.com/v1.0/me/events'
         headers = {
             'Authorization': f'Bearer {self.access_token}',
@@ -130,7 +131,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         }
         event_data["singleValueExtendedProperties"] = [{
             "id": "String {66f5a359-4659-4830-9070-00040ec6ac6e} Name potatotime",
-            "value": "1"
+            "value": source_event_id,
         }]
         response = requests.post(url, headers=headers, json=event_data)
         response.raise_for_status()
