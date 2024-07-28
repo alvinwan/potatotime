@@ -1,0 +1,79 @@
+import caldav
+from caldav.elements import dav, cdav
+import pytz
+import datetime
+import os
+from . import CalendarServiceInterface
+
+class AppleCalendarService(CalendarServiceInterface):
+    def __init__(self):
+        self.client = caldav.DAVClient(
+            url='https://caldav.icloud.com/',
+            username=os.environ['POTATOTIME_APPLE_USERNAME'],
+            password=os.environ['POTATOTIME_APPLE_PASSWORD'],
+        )
+        self.principal = self.client.principal()
+        self.calendars = self.principal.calendars()
+
+    def authorize(self):
+        # Authorization is handled in the constructor for Apple Calendar
+        pass
+
+    def _get_event(self, event_id):
+        calendar = self.calendars[0]
+        uid, start_time = event_id
+        events = calendar.date_search(start=start_time, end=start_time + datetime.timedelta(hours=1))
+        for event in events:
+            if uid in event.data:
+                return event
+        print(f"No event found with UID: {event_id}")
+        return None
+
+    def create_event(self, event_data):
+        calendar = self.calendars[0]  # Select the first calendar
+        event = f"""
+BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:{datetime.datetime.now().timestamp()}@example.com
+DTSTART:{event_data['start'].strftime('%Y%m%dT%H%M%S')}
+DTEND:{event_data['end'].strftime('%Y%m%dT%H%M%S')}
+SUMMARY:{event_data['summary']}
+DESCRIPTION:{event_data['description']}
+LOCATION:{event_data['location']}
+END:VEVENT
+END:VCALENDAR
+"""
+        new_event = calendar.add_event(event)
+        print(f"Event '{event_data['summary']}' created with UID: {new_event.instance.vevent.uid.value}")
+        return new_event.instance.vevent.uid.value, event_data['start']
+
+    def update_event(self, event_id, update_data):
+        event = self._get_event(event_id)
+        if event:
+            component = event.vobject_instance.vevent
+            if 'start' in update_data:
+                component.dtstart.value = update_data['start']
+            if 'end' in update_data:
+                component.dtend.value = update_data['end']
+            if 'summary' in update_data:
+                component.summary.value = update_data['summary']
+            if 'description' in update_data:
+                component.description.value = update_data['description']
+            if 'location' in update_data:
+                component.location.value = update_data['location']
+            event.save()
+            print(f"Event '{component.summary.value}' edited.")
+
+            return event_id[0], update_data['start']
+
+    def delete_event(self, event_id):
+        event = self._get_event(event_id)
+        if event:
+            event.delete()
+            print(f'Event "{event_id}" deleted')
+
+    def get_events(self):
+        calendar = self.calendars[0]
+        now = datetime.datetime.utcnow()
+        return calendar.date_search(start=now, end=now + datetime.timedelta(days=365))  # Fetch events for the next year

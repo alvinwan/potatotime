@@ -1,5 +1,8 @@
 from services.gcal import GoogleCalendarService
 from services.outlook import MicrosoftCalendarService
+from services.ical import AppleCalendarService
+import datetime
+import pytz
 
 
 if __name__ == '__main__':
@@ -45,11 +48,12 @@ if __name__ == '__main__':
         },
     }
     google_service.update_event(google_event_id, google_update_data)
-    google_service.delete_event(google_event_id)
 
     for event in google_service.get_events():
         start = event['start'].get('dateTime', event['start'].get('date'))
         print(start, event['summary'])
+
+    google_service.delete_event(google_event_id)
 
     microsoft_service = MicrosoftCalendarService()
     microsoft_service.authorize()
@@ -78,4 +82,34 @@ if __name__ == '__main__':
         "subject": "Discuss the new project - Updated",
     }
     microsoft_service.update_event(microsoft_event_id, microsoft_update_data)
+
+    for event in microsoft_service.get_events():
+        print(event['start']['dateTime'], event['subject'])
+
     microsoft_service.delete_event(microsoft_event_id)
+
+    apple_service = AppleCalendarService()
+    apple_service.authorize()
+    
+    apple_event_data = {
+        'start': datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
+        'end': datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.utc),
+        'summary': "New Event",
+        'description': "This is a new event",
+        'location': "Location"
+    }
+    apple_event_id = apple_service.create_event(apple_event_data)
+    apple_update_data = {
+        'start': datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
+        'end': datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
+        'summary': "Edited Event",
+        'description': "This event has been edited",
+        'location': "New Location"
+    }
+    apple_event_id = apple_service.update_event(apple_event_id, apple_update_data) or apple_event_id
+
+    for event in apple_service.get_events():
+        component = event.vobject_instance.vevent
+        print(component.summary.value)
+
+    apple_service.delete_event(apple_event_id)
