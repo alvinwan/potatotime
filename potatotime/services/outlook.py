@@ -30,12 +30,21 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         if os.path.exists('msft.json'):
             with open('msft.json', 'r') as f:
                 self.access_token = json.loads(f.read())['access_token']
-        else:
-            auth_code = self._get_auth_code()
-            token_response = self._get_token(auth_code)
-            self.access_token = token_response['access_token']
-            with open('msft.json', 'w') as f:
-                f.write(json.dumps({'access_token': self.access_token}))
+
+            url = "https://graph.microsoft.com/v1.0/me/events"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}"
+            }
+            
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                return
+
+        auth_code = self._get_auth_code()
+        token_response = self._get_token(auth_code)
+        self.access_token = token_response['access_token']
+        with open('msft.json', 'w') as f:
+            f.write(json.dumps({'access_token': self.access_token}))
 
     def _get_auth_code(self):
         auth_url = f'{self.authorization_endpoint}?client_id={self.client_id}&response_type=code&redirect_uri={self.redirect_uri}&scope={" ".join(self.scopes)}'
@@ -124,7 +133,7 @@ class OAuthHandler(BaseHTTPRequestHandler):
 
 class MicrosoftCalendarEvent(CalendarEvent):
     # TODO: Add support for recurrence rules
-    
+
     def serialize(self) -> dict:
         return {
             'id': self.id,

@@ -3,7 +3,7 @@ from caldav.elements import dav, cdav
 import pytz
 import datetime
 import os
-from . import CalendarServiceInterface
+from . import CalendarServiceInterface, CalendarEvent
 
 class AppleCalendarService(CalendarServiceInterface):
     def __init__(self):
@@ -38,18 +38,17 @@ BEGIN:VEVENT
 UID:{datetime.datetime.now().timestamp()}@example.com
 DTSTART:{event_data['start'].strftime('%Y%m%dT%H%M%S')}
 DTEND:{event_data['end'].strftime('%Y%m%dT%H%M%S')}
-SUMMARY:{event_data['summary']}
-DESCRIPTION:{event_data['description']}
-LOCATION:{event_data['location']}
+SUMMARY:{event_data.get('summary', '')}
+DESCRIPTION:{event_data.get('description', '')}
+LOCATION:{event_data.get('location', '')}
 END:VEVENT
 END:VCALENDAR
 """
         new_event = calendar.add_event(event)
-        print(f"Event '{event_data['summary']}' created with UID: {new_event.instance.vevent.uid.value}")
-        return new_event.instance.vevent.uid.value, event_data['start']
+        print(f"Event '{new_event.instance.vevent.uid.value}' created with UID: {new_event.instance.vevent.uid.value}")
+        return new_event
 
-    def update_event(self, event_id, update_data):
-        event = self._get_event(event_id)
+    def update_event(self, event, update_data):
         if event:
             component = event.vobject_instance.vevent
             if 'start' in update_data:
@@ -63,17 +62,35 @@ END:VCALENDAR
             if 'location' in update_data:
                 component.location.value = update_data['location']
             event.save()
-            print(f"Event '{component.summary.value}' edited.")
+            print(f"Event '{event.vobject_instance.vevent.uid.value}' edited.")
 
-            return event_id[0], update_data['start']
-
-    def delete_event(self, event_id):
-        event = self._get_event(event_id)
-        if event:
-            event.delete()
-            print(f'Event "{event_id}" deleted')
+    def delete_event(self, event):
+        event.delete()
+        print(f'Event "{event.instance.vevent.uid.value}" deleted')
 
     def get_events(self):
         calendar = self.calendars[0]
         now = datetime.datetime.utcnow()
         return calendar.date_search(start=now, end=now + datetime.timedelta(days=365))  # Fetch events for the next year
+
+
+class AppleCalendarEvent(CalendarEvent):
+    def serialize(self) -> dict:
+        return {
+            'id': self.id,
+            'start': self.start,
+            'end': self.end
+        }
+
+    @staticmethod
+    def deserialize(event):
+        if isinstance(event, dict):
+            return AppleCalendarEvent(
+                start=event['start'],
+                end=event['end'],
+            )
+        return AppleCalendarEvent(
+            id=event.instance.vevent.uid.value,
+            start=event.instance.vevent.dtstart.value,
+            end=event.instance.vevent.dtend.value,
+        )

@@ -1,6 +1,6 @@
 from potatotime.services.gcal import GoogleCalendarService, GoogleCalendarEvent
 from potatotime.services.outlook import MicrosoftCalendarService, MicrosoftCalendarEvent
-from potatotime.services.ical import AppleCalendarService
+from potatotime.services.ical import AppleCalendarService, AppleCalendarEvent
 import datetime
 import pytz
 
@@ -61,8 +61,8 @@ def test_google_service():
     google_service.authorize()
     
     google_event_data = GoogleCalendarEvent(
-        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
-        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         recurrence='RRULE:FREQ=WEEKLY;COUNT=10'
     ).serialize()
 
@@ -70,8 +70,8 @@ def test_google_service():
         google_service.create_event(google_event_data)
     )
     google_update_data = GoogleCalendarEvent(
-        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
-        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         recurrence=''
     ).serialize()
     google_service.update_event(google_event.id, google_update_data)
@@ -123,15 +123,14 @@ def test_microsoft_service():
     microsoft_service.authorize()
 
     microsoft_event_data = MicrosoftCalendarEvent(
-        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
-        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
     ).serialize()
 
     microsoft_event_id = microsoft_service.create_event(microsoft_event_data)
     microsoft_update_data = MicrosoftCalendarEvent(
-        start=datetime.datetime.fromisoformat('2024-08-01T09:00:00-07:00'),
-        end=datetime.datetime.fromisoformat('2024-08-01T17:00:00-07:00'),
-        recurrence=''
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
     ).serialize()
     microsoft_service.update_event(microsoft_event_id, microsoft_update_data)
 
@@ -142,7 +141,7 @@ def test_microsoft_service():
     microsoft_service.delete_event(microsoft_event_id)
 
 
-def test_apple_service():
+def test_raw_apple_service():
     apple_service = AppleCalendarService()
     apple_service.authorize()
     
@@ -153,7 +152,7 @@ def test_apple_service():
         'description': "This is a new event",
         'location': "Location"
     }
-    apple_event_id = apple_service.create_event(apple_event_data)
+    apple_event = apple_service.create_event(apple_event_data)
     apple_update_data = {
         'start': datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
         'end': datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
@@ -161,13 +160,35 @@ def test_apple_service():
         'description': "This event has been edited",
         'location': "New Location"
     }
-    apple_event_id = apple_service.update_event(apple_event_id, apple_update_data) or apple_event_id
+    apple_service.update_event(apple_event, apple_update_data)
 
     for event in apple_service.get_events():
-        component = event.vobject_instance.vevent
-        print(component.summary.value)
+        component = event.instance.vevent
+        print(component.dtstart.value, component.summary.value)
 
-    apple_service.delete_event(apple_event_id)
+    apple_service.delete_event(apple_event)
+
+
+def test_apple_service():
+    apple_service = AppleCalendarService()
+    apple_service.authorize()
+
+    apple_event_data = AppleCalendarEvent(
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.utc),
+    ).serialize()
+    apple_event = apple_service.create_event(apple_event_data)
+    apple_update_data = AppleCalendarEvent(
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
+    ).serialize()
+    apple_service.update_event(apple_event, apple_update_data)
+
+    for event_data in apple_service.get_events():
+        event = AppleCalendarEvent.deserialize(event_data)
+        print(event.id, event.start, event.end)
+
+    apple_service.delete_event(apple_event)
 
 
 if __name__ == '__main__':
@@ -176,4 +197,5 @@ if __name__ == '__main__':
     test_google_service()
     test_raw_microsoft_service()
     test_microsoft_service()
+    test_raw_apple_service()
     test_apple_service()
