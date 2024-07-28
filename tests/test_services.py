@@ -33,7 +33,7 @@ def test_raw_google_service():
         },
     }
 
-    google_event = google_service.create_event(google_event_data)
+    google_event = google_service.create_event(google_event_data, source_event_id='')
     google_update_data = {
         'summary': 'Updated Sample Event',
         'location': '500 Terry A Francois Blvd, San Francisco, CA 94158',
@@ -67,7 +67,7 @@ def test_google_service():
     ).serialize()
 
     google_event = GoogleCalendarEvent.deserialize(
-        google_service.create_event(google_event_data)
+        google_service.create_event(google_event_data, source_event_id='')
     )
     google_update_data = GoogleCalendarEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
@@ -106,7 +106,7 @@ def test_raw_microsoft_service():
         }
     }
 
-    microsoft_event = microsoft_service.create_event(microsoft_event_data)
+    microsoft_event = microsoft_service.create_event(microsoft_event_data, source_event_id='')
     microsoft_update_data = {
         "subject": "Discuss the new project - Updated",
     }
@@ -128,7 +128,7 @@ def test_microsoft_service():
     ).serialize()
 
     microsoft_event = MicrosoftCalendarEvent.deserialize(
-        microsoft_service.create_event(microsoft_event_data)
+        microsoft_service.create_event(microsoft_event_data, source_event_id='')
     )
     microsoft_update_data = MicrosoftCalendarEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
