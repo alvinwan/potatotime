@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 from datetime import datetime
 from typing import List, Optional, Union
+import pytz
 
 
 class CalendarServiceInterface(ABC):
@@ -51,6 +52,17 @@ class BaseEvent:
             field.name: getattr(other, field.name)
             for field in fields(cls)
         })
+    
+    def __eq__(self, other: 'BaseEvent'):
+        for field in fields(self):
+            self_value = getattr(self, field.name)
+            other_value = getattr(other, field.name)
+            if field.type is datetime:
+                self_value = self_value.astimezone(pytz.utc)
+                other_value = other_value.astimezone(pytz.utc)
+            if self_value != other_value:
+                return False
+        return True
 
 
 @dataclass
