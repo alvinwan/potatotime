@@ -12,13 +12,13 @@ def synchronize(calendars: List[CalendarServiceInterface]):
         for calendar in calendars
     ]
 
-    new_events = {}
+    new_events, updated_events = {}, {}
     for i in range(len(calendars)):
         for j in range(len(calendars)):
             if i == j:
                 continue
-            new_events[(i, j)] = synchronize_from_to(calendars[i], calendars_events[i], calendars[j], calendars_events[j])
-    return new_events
+            new_events[(i, j)], updated_events[(i, j)] = synchronize_from_to(calendars[i], calendars_events[i], calendars[j], calendars_events[j])
+    return new_events, updated_events
 
 
 def synchronize_from_to(
@@ -27,13 +27,25 @@ def synchronize_from_to(
     calendar2: CalendarServiceInterface,
     events2: List[ExtendedEvent]
 ) -> List[str]:
-    source_event_ids = {event.source_event_id for event in events2}
+    source_event_ids = {event.source_event_id: event for event in events2}
 
     new_events = []
+    updated_events = []
     for event1 in events1:
+        if event1.id in source_event_ids:  # events already sync'ed
+            event2 = source_event_ids[event1.id]
+            copy_stub = StubEvent.from_(event2)
+            orig_stub = StubEvent.from_(event1)
+            if copy_stub == orig_stub:  # if still equal to original, we're done
+                continue
+
+            copy_data = orig_stub.serialize(calendar2.event_serializer)
+            copy_data = calendar2.update_event(event2.id, copy_data)
+            copy = ExtendedEvent.deserialize(copy_data, calendar2.event_serializer)
+            updated_events.append(copy)
+
         if (  # Do not copy any of the following events
             event1.source_event_id is not None  # copy created by PotatoTime
-            or event1.id in source_event_ids  # events already sync'ed
             or event1.declined  # event declined by user (only implemented for Google)
         ):
             continue
@@ -42,4 +54,4 @@ def synchronize_from_to(
         copy2_data = calendar2.create_event(copy2_data, source_event_id=event1.id)
         copy2 = ExtendedEvent.deserialize(copy2_data, calendar2.event_serializer)
         new_events.append(copy2)
-    return new_events
+    return new_events, updated_events

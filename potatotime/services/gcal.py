@@ -86,9 +86,10 @@ class GoogleCalendarService(CalendarServiceInterface):
         print(f'Event created: {event.get("htmlLink")}')
         return event
 
-    def update_event(self, event_id, update_data):
+    def update_event(self, event_id, update_data, is_copy: bool=True):
         event = self.service.events().get(calendarId='primary', eventId=event_id).execute()
-        assert 'potatotime' in event.get('extendedProperties', {}).get('private', {})
+        if is_copy:  # NOTE: Should only be False during testing
+            assert 'potatotime' in event.get('extendedProperties', {}).get('private', {})
         event.update(update_data)
         updated_event = self.service.events().update(calendarId='primary', eventId=event_id, body=event).execute()
         print(f'Event updated: {updated_event.get("htmlLink")}')

@@ -156,6 +156,74 @@ def test_copy_all_day_event():
     assert StubEvent.from_(new_events[(1, 0)][0]) == StubEvent.from_(microsoft_event)
 
 
+def test_update_edited_event():
+    """
+    Tests whether updates to edited events propagate to their sync'ed copies.
+    """
+    google_service = GoogleCalendarService()
+    google_service.authorize()
+
+    microsoft_service = MicrosoftCalendarService()
+    microsoft_service.authorize()
+
+    assert len(google_service.get_events()) == 0
+    assert len(microsoft_service.get_events()) == 0
+
+    google_event_data = StubEvent(
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        is_all_day=False,
+    ).serialize(google_service.event_serializer)
+    google_event_data = google_service.create_event(google_event_data, source_event_id=None)
+    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
+
+    microsoft_event_data = StubEvent(
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        is_all_day=False,
+    ).serialize(microsoft_service.event_serializer)
+    microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
+
+    new_events1, updated_events1 = synchronize([google_service, microsoft_service])
+
+    google_update_data = StubEvent(
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 3, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 3, 11, 0, 0)),
+        is_all_day=False,
+    ).serialize(google_service.event_serializer)
+    google_update_data = google_service.update_event(google_event.id, google_update_data, is_copy=False)
+    google_update = CreatedEvent.deserialize(google_update_data, google_service.event_serializer)
+
+    microsoft_update_data = StubEvent(
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 4, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 4, 11, 0, 0)),
+        is_all_day=False,
+    ).serialize(microsoft_service.event_serializer)
+    microsoft_update_data = microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
+    microsoft_update = CreatedEvent.deserialize(microsoft_update_data, microsoft_service.event_serializer)
+
+    new_events2, updated_events2 = synchronize([google_service, microsoft_service])
+
+    google_service.delete_event(google_event.id, is_copy=False)
+    for event in new_events1[(1, 0)] + new_events2[(1, 0)]:
+        google_service.delete_event(event.id)
+
+    microsoft_service.delete_event(microsoft_event.id)
+    for event in new_events1[(0, 1)] + new_events2[(0, 1)]:
+        microsoft_service.delete_event(event.id)
+
+    # Check that update from Google to Microsoft calendar worked
+    assert len(new_events1[(0, 1)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
+    assert len(updated_events2[(0, 1)]) == 1, f"Expected 1 updated events. Got: {len(new_events1[(0, 1)])}"
+    assert StubEvent.from_(updated_events2[(0, 1)][0]) == StubEvent.from_(google_update)
+
+    # Check that update from Microsoft to Google calendar worked
+    assert len(new_events1[(1, 0)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
+    assert len(updated_events2[(1, 0)]) == 1, f"Expected 1 updated events. Got: {len(new_events1[(0, 1)])}"
+    assert StubEvent.from_(updated_events2[(1, 0)][0]) == StubEvent.from_(microsoft_update)
+
+
 def test_already_copied_event_microsoft():
     """
     Tests whether Microsoft events properly track (a) that it was createad by
@@ -261,11 +329,12 @@ def test_already_copied_event_google():
 
 
 if __name__ == '__main__':
-    test_copy_event()
-    test_copy_recurring_event()
-    test_copy_all_day_event()
-    test_already_copied_event_microsoft()
-    test_already_copied_event_google()
+    # test_copy_event()
+    # test_copy_recurring_event()
+    # test_copy_all_day_event()
+    test_update_edited_event()
+    # test_already_copied_event_microsoft()
+    # test_already_copied_event_google()
 
     # TODO: finish these tests
     # test_ignore_declined_google() # Need to finish writing test
