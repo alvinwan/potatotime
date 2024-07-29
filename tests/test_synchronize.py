@@ -1,5 +1,6 @@
-from potatotime.services.gcal import GoogleCalendarService, GoogleCalendarEvent
-from potatotime.services.outlook import MicrosoftCalendarService, MicrosoftCalendarEvent
+from potatotime.services import StubEvent, CreatedEvent
+from potatotime.services.gcal import GoogleCalendarService
+from potatotime.services.outlook import MicrosoftCalendarService
 from potatotime.synchronize import synchronize
 import datetime
 import pytz
@@ -18,19 +19,21 @@ def test_copy_event():
     assert len(google_service.get_events()) == 0
     assert len(microsoft_service.get_events()) == 0
 
-    google_event_data = GoogleCalendarEvent(
+    google_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-    ).serialize()
+        recurrence=None,
+    ).serialize(google_service.event_serializer)
     google_event_data = google_service.create_event(google_event_data, source_event_id=None)
-    google_event = GoogleCalendarEvent.deserialize(google_event_data)
+    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
 
-    microsoft_event_data = MicrosoftCalendarEvent(
+    microsoft_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-    ).serialize()
+        recurrence=None,
+    ).serialize(microsoft_service.event_serializer)
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
-    microsoft_event = MicrosoftCalendarEvent.deserialize(microsoft_event_data)
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
 
     new_events = synchronize([google_service, microsoft_service])
 
@@ -67,12 +70,13 @@ def test_already_copied_event_microsoft():
     assert len(google_service.get_events()) == 0
     assert len(microsoft_service.get_events()) == 0
 
-    google_event_data = GoogleCalendarEvent(
+    google_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-    ).serialize()
+        recurrence=None,
+    ).serialize(google_service.event_serializer)
     google_event_data = google_service.create_event(google_event_data, source_event_id=None)
-    google_event = GoogleCalendarEvent.deserialize(google_event_data)
+    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
 
     new_events1 = synchronize([google_service, microsoft_service])
 
@@ -108,12 +112,13 @@ def test_already_copied_event_google():
     assert len(google_service.get_events()) == 0
     assert len(microsoft_service.get_events()) == 0
 
-    microsoft_event_data = MicrosoftCalendarEvent(
+    microsoft_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-    ).serialize()
+        recurrence=None,
+    ).serialize(microsoft_service.event_serializer)
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
-    microsoft_event = MicrosoftCalendarEvent.deserialize(microsoft_event_data)
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
 
     new_events1 = synchronize([microsoft_service, google_service])
 

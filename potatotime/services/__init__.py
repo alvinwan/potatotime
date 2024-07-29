@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict, field, fields
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, ClassVar
 
 
 class CalendarServiceInterface(ABC):
+    event_serializer: 'EventSerializer'
+
     @abstractmethod
     def authorize(self):
         pass
@@ -26,31 +28,55 @@ class CalendarServiceInterface(ABC):
         pass
 
 
-@dataclass
-class CalendarEvent:
-    start: datetime
-    end: datetime
-    id: Optional[str] = None
-    url: Optional[str] = None
-    recurrence: Optional[List[str]] = None
-    source_event_id: Optional[str] = None
-
+class EventSerializer(ABC):
     @abstractmethod
-    def serialize(self) -> dict:
+    def serialize(self, field_name: str):
         pass
 
     @staticmethod
     @abstractmethod
-    def deserialize(event_data: dict):
+    def deserialize(self, field_name: str, data: dict):
         pass
 
+
+@dataclass
+class BaseEvent:
+    start: datetime
+    end: datetime
+    recurrence: Optional[List[str]]
+
     @classmethod
-    def from_(cls, event: 'CalendarEvent'):
-        return cls(
-            start=event.start,
-            end=event.end,
-            id=event.id,
-            url=event.url,
-            recurrence=event.recurrence,
-            source_event_id=event.id, # WARNING: NOT USED
-        )
+    def from_(cls, other: 'BaseEvent'):
+        return cls(**{
+            field.name: getattr(other, field.name)
+            for field in fields(cls)
+        })
+
+
+@dataclass
+class StubEvent(BaseEvent):
+    """Used to serialize payloads for APIs"""
+    def serialize(self, serializer: EventSerializer) -> dict:
+        return {
+            field.name: serializer.serialize(field.name, self)
+            for field in fields(self)
+        }
+
+
+@dataclass
+class CreatedEvent(BaseEvent):
+    """Used to standardize event payloads returned by APIs"""
+    id: str
+    
+    @classmethod
+    def deserialize(cls, event_data: dict, serializer: EventSerializer):
+        return cls(**{
+            field.name: serializer.deserialize(field.name, event_data)
+            for field in fields(cls)
+        })
+
+
+@dataclass
+class ExtendedEvent(CreatedEvent):
+    """Used to extract additional information from payloads returned by APIs"""
+    source_event_id: Optional[str] = None

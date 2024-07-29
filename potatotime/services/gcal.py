@@ -5,34 +5,32 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from . import CalendarServiceInterface, CalendarEvent
+from . import CalendarServiceInterface, EventSerializer, BaseEvent
 from typing import Optional
 
 
-class GoogleCalendarEvent(CalendarEvent):
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'start': {'dateTime': self.start.isoformat()},
-            'end': {'dateTime': self.end.isoformat()},
-            'recurrence': self.recurrence,
-            'htmlLink': self.url
-        }
-
-    @staticmethod
-    def deserialize(event_data: dict):
-        return GoogleCalendarEvent(
-            id=event_data.get('id'),
-            start=datetime.datetime.fromisoformat(event_data['start']['dateTime']),
-            end=datetime.datetime.fromisoformat(event_data['end']['dateTime']),
-            url=event_data['htmlLink'],
-            recurrence=event_data.get('recurrence', []),
-            source_event_id=event_data.get('extendedProperties', {}).get('private', {}).get('potatotime')
-        )
+class _GoogleEventSerializer(EventSerializer):
+    def serialize(self, field_name: str, event: BaseEvent):
+        if field_name == 'recurrence':
+            return event.recurrence
+        if field_name in ('start', 'end'):
+            return {'dateTime': getattr(event, field_name).isoformat()}
+        raise NotImplementedError(f"Serializing {field_name} is not supported")
+    
+    def deserialize(self, field_name: str, event_data: dict):
+        if field_name == 'id':
+            return event_data.get('id')
+        if field_name in ('start', 'end'):
+            return datetime.datetime.fromisoformat(event_data[field_name]['dateTime'])
+        if field_name == 'url':
+            return event_data.get('htmlLink')
+        if field_name == 'recurrence':
+            return event_data.get('recurrence', [])
+        if field_name == 'source_event_id':
+            return event_data.get('extendedProperties', {}).get('private', {}).get('potatotime')
 
 
 class GoogleCalendarService(CalendarServiceInterface):
-    CalendarEvent = GoogleCalendarEvent
     
     def __init__(self):
         # If modifying these SCOPES, delete the file goog.json.
@@ -42,6 +40,7 @@ class GoogleCalendarService(CalendarServiceInterface):
             "https://www.googleapis.com/auth/calendar.events",
             "https://www.googleapis.com/auth/calendar.readonly",
         ]
+        self.event_serializer = _GoogleEventSerializer()
 
     def authorize(self):
         creds = None

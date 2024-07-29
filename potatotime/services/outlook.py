@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import datetime
 import pytz
-from . import CalendarServiceInterface, CalendarEvent
+from . import CalendarServiceInterface, EventSerializer, BaseEvent
 from typing import Optional
 
 # Replace these values with your app's client ID, client secret, and redirect URI
@@ -17,47 +17,37 @@ AUTHORITY = 'https://login.microsoftonline.com/common'
 AUTHORIZATION_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/authorize'
 TOKEN_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/token'
 SCOPES = ['Calendars.ReadWrite']
+    
 
-
-class MicrosoftCalendarEvent(CalendarEvent):
-    # TODO: Add support for recurrence rules
-
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'start': {
-                'dateTime': self.start.isoformat(),
-                'timeZone': self.start.tzinfo.tzname(self.start) if self.start.tzinfo else 'UTC'
-            },
-            'end': {
-                'dateTime': self.end.isoformat(),
-                'timeZone': self.end.tzinfo.tzname(self.end) if self.end.tzinfo else 'UTC'
-            },
-            'webLink': self.url,
-        }
-
-    @staticmethod
-    def deserialize(event_data: dict):
-        start_time = datetime.datetime.fromisoformat(event_data['start']['dateTime'])
-        end_time = datetime.datetime.fromisoformat(event_data['end']['dateTime'])
-        
-        start_timezone = pytz.timezone(event_data['start']['timeZone'])
-        end_timezone = pytz.timezone(event_data['end']['timeZone'])
-
-        start_time = start_time.replace(tzinfo=start_timezone)
-        end_time = end_time.replace(tzinfo=end_timezone)
-
-        return MicrosoftCalendarEvent(
-            id=event_data['id'],
-            start=start_time,
-            end=end_time,
-            url=event_data['webLink'],
-            source_event_id=event_data.get('singleValueExtendedProperties', [{}])[0].get('value')
-        )
+class _MicrosoftEventSerializer(EventSerializer):
+    def serialize(self, field_name: str, event: BaseEvent):
+        if field_name == 'recurrence':
+            return None # TODO: implement me
+        if field_name in ('start', 'end'):
+            field_value = getattr(event, field_name)
+            return {
+                'dateTime': field_value.isoformat(),
+                'timeZone': field_value.tzinfo.tzname(field_value) if field_value.tzinfo else 'UTC'
+            }
+        raise NotImplementedError(f"Serializing {field_name} is not supported")
+    
+    def deserialize(self, field_name: str, event_data: dict):
+        if field_name == 'id':
+            return event_data.get('id')
+        if field_name in ('start', 'end'):
+            time = datetime.datetime.fromisoformat(event_data[field_name]['dateTime'])
+            timezone = pytz.timezone(event_data[field_name]['timeZone'])
+            time = time.replace(tzinfo=timezone)
+            return time
+        if field_name == 'url':
+            return event_data.get('webLink')
+        if field_name == 'recurrence':
+            return None # TODO: implement me
+        if field_name == 'source_event_id':
+            return event_data.get('singleValueExtendedProperties', [{}])[0].get('value')
 
 
 class MicrosoftCalendarService(CalendarServiceInterface):
-    CalendarEvent = MicrosoftCalendarEvent
 
     def __init__(self):
         self.client_id = os.environ['POTATOTIME_MSFT_CLIENT_ID']
@@ -66,6 +56,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         self.authorization_endpoint = f'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
         self.token_endpoint = f'https://login.microsoftonline.com/common/oauth2/v2.0/token'
         self.scopes = ['Calendars.ReadWrite']
+        self.event_serializer = _MicrosoftEventSerializer()
 
     def authorize(self):
         if os.path.exists('msft.json'):

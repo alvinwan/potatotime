@@ -3,33 +3,27 @@ from caldav.elements import dav, cdav
 import pytz
 import datetime
 import os
-from . import CalendarServiceInterface, CalendarEvent
+from . import CalendarServiceInterface, EventSerializer, BaseEvent
 
 
-class AppleCalendarEvent(CalendarEvent):
-    def serialize(self) -> dict:
-        return {
-            'id': self.id,
-            'start': self.start,
-            'end': self.end
-        }
-
-    @staticmethod
-    def deserialize(event):
-        if isinstance(event, dict):
-            return AppleCalendarEvent(
-                start=event['start'],
-                end=event['end'],
-            )
-        return AppleCalendarEvent(
-            id=event.instance.vevent.uid.value,
-            start=event.instance.vevent.dtstart.value,
-            end=event.instance.vevent.dtend.value,
-        )
+class _AppleEventSerializer(EventSerializer):
+    def serialize(self, field_name: str, event: BaseEvent):
+        if field_name == 'recurrence':
+            return None # TODO: implement me
+        if field_name in ('start', 'end'):
+            return getattr(event, field_name)
+        raise NotImplementedError(f"Serializing {field_name} is not supported")
+    
+    def deserialize(self, field_name: str, event_data):
+        if field_name == 'id':
+            return event_data.instance.vevent.uid.value
+        if field_name in ('start', 'end'):
+            return getattr(event_data.instance.vevent, f"dt{field_name}").value
+        if field_name in ('url', 'recurrence', 'source_event_id'):
+            return None  # TODO: implement me
 
 
 class AppleCalendarService(CalendarServiceInterface):
-    CalendarEvent = AppleCalendarEvent
     
     def __init__(self):
         self.client = caldav.DAVClient(
@@ -39,6 +33,7 @@ class AppleCalendarService(CalendarServiceInterface):
         )
         self.principal = self.client.principal()
         self.calendars = self.principal.calendars()
+        self.event_serializer = _AppleEventSerializer()
 
     def authorize(self):
         # Authorization is handled in the constructor for Apple Calendar

@@ -1,6 +1,7 @@
-from potatotime.services.gcal import GoogleCalendarService, GoogleCalendarEvent
-from potatotime.services.outlook import MicrosoftCalendarService, MicrosoftCalendarEvent
-from potatotime.services.ical import AppleCalendarService, AppleCalendarEvent
+from potatotime.services import StubEvent, CreatedEvent
+from potatotime.services.gcal import GoogleCalendarService
+from potatotime.services.outlook import MicrosoftCalendarService
+from potatotime.services.ical import AppleCalendarService
 import datetime
 import pytz
 
@@ -60,24 +61,23 @@ def test_google_service():
     google_service = GoogleCalendarService()
     google_service.authorize()
     
-    google_event_data = GoogleCalendarEvent(
+    google_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         recurrence='RRULE:FREQ=WEEKLY;COUNT=10'
-    ).serialize()
+    ).serialize(google_service.event_serializer)
 
-    google_event = GoogleCalendarEvent.deserialize(
-        google_service.create_event(google_event_data, source_event_id='')
-    )
-    google_update_data = GoogleCalendarEvent(
+    google_event_data = google_service.create_event(google_event_data, source_event_id='')
+    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
+    google_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        recurrence=''
-    ).serialize()
+        recurrence=None
+    ).serialize(google_service.event_serializer)
     google_service.update_event(google_event.id, google_update_data)
 
     for event_data in google_service.get_events():
-        event = GoogleCalendarEvent.deserialize(event_data)
+        event = CreatedEvent.deserialize(event_data, google_service.event_serializer)
         print(event.id, event.start, event.end)
 
     google_service.delete_event(google_event.id)
@@ -122,22 +122,23 @@ def test_microsoft_service():
     microsoft_service = MicrosoftCalendarService()
     microsoft_service.authorize()
 
-    microsoft_event_data = MicrosoftCalendarEvent(
+    microsoft_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-    ).serialize()
+        recurrence=None,
+    ).serialize(microsoft_service.event_serializer)
 
-    microsoft_event = MicrosoftCalendarEvent.deserialize(
-        microsoft_service.create_event(microsoft_event_data, source_event_id='')
-    )
-    microsoft_update_data = MicrosoftCalendarEvent(
+    microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id='')
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
+    microsoft_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-    ).serialize()
+        recurrence=None,
+    ).serialize(microsoft_service.event_serializer)
     microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
 
     for event_data in microsoft_service.get_events():
-        event = MicrosoftCalendarEvent.deserialize(event_data)
+        event = CreatedEvent.deserialize(event_data, microsoft_service.event_serializer)
         print(event.id, event.start, event.end)
 
     microsoft_service.delete_event(microsoft_event.id)
@@ -175,19 +176,21 @@ def test_apple_service():
     apple_service = AppleCalendarService()
     apple_service.authorize()
 
-    apple_event_data = AppleCalendarEvent(
+    apple_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.utc),
-    ).serialize()
+        recurrence=None,
+    ).serialize(apple_service.event_serializer)
     apple_event = apple_service.create_event(apple_event_data)
-    apple_update_data = AppleCalendarEvent(
+    apple_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
-    ).serialize()
+        recurrence=None,
+    ).serialize(apple_service.event_serializer)
     apple_service.update_event(apple_event, apple_update_data)
 
     for event_data in apple_service.get_events():
-        event = AppleCalendarEvent.deserialize(event_data)
+        event = CreatedEvent.deserialize(event_data, apple_service.event_serializer)
         print(event.id, event.start, event.end)
 
     apple_service.delete_event(apple_event)
