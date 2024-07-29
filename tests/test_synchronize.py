@@ -380,7 +380,3 @@ if __name__ == '__main__':
     # TODO: finish these tests
     # test_ignore_declined_google() # Need to finish writing test
     # test_ignore_declined_microsoft() # Need to get working
-
-    # TODO: add these tests
-    # test_cannot_modify_user_event() - no updates or deletes to user events
-    pass
