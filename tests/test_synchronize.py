@@ -57,6 +57,71 @@ def test_copy_event():
     assert copied_google_event.end.astimezone(pytz.utc) == microsoft_event.end
 
 
+def test_copy_recurring_event():
+    """
+    Tests that recurring events are copied over
+    """
+    google_service = GoogleCalendarService()
+    google_service.authorize()
+
+    microsoft_service = MicrosoftCalendarService()
+    microsoft_service.authorize()
+
+    assert len(google_service.get_events()) == 0
+    assert len(microsoft_service.get_events()) == 0
+
+    google_event_data = StubEvent(
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        is_all_day=False,
+    ).serialize(google_service.event_serializer)
+    google_event_data['recurrence'] = ['RRULE:FREQ=WEEKLY;COUNT=2']
+    google_event_data = google_service.create_event(google_event_data, source_event_id=None)
+    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
+
+    microsoft_event_data = StubEvent(
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        is_all_day=False,
+    ).serialize(microsoft_service.event_serializer)
+    microsoft_event_data['recurrence'] = {
+        "pattern": {
+            "type": "weekly",
+            "interval": 1,  # Every week
+            "daysOfWeek": ["friday"],  # Adjust based on the actual start day of the event
+            "firstDayOfWeek": "friday"
+        },
+        "range": {
+            "type": "numbered",
+            "numberOfOccurrences": 2,
+            "startDate": "2024-08-02"
+        }
+    }
+    microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
+
+    new_events = synchronize([google_service, microsoft_service])
+
+    google_service.delete_event(google_event.id, is_copy=False)
+    for event in new_events[(1, 0)]:
+        google_service.delete_event(event.id)
+
+    microsoft_service.delete_event(microsoft_event.id)
+    for event in new_events[(0, 1)]:
+        microsoft_service.delete_event(event.id)
+
+    assert len(new_events[(0, 1)]) == 2, f"Expected 2 sync'ed events from Google to Microsoft. Got: {len(new_events[(0, 1)])}"
+    assert len(new_events[(1, 0)]) == 2, f"Expected 2 sync'ed events from Microsoft to Google. Got: {len(new_events[(1, 0)])}"
+
+    copied_microsoft_event = new_events[(0, 1)][0]
+    assert copied_microsoft_event.start == google_event.start.astimezone(pytz.utc)
+    assert copied_microsoft_event.end == google_event.end.astimezone(pytz.utc)
+
+    copied_google_event = new_events[(1, 0)][0]
+    assert copied_google_event.start.astimezone(pytz.utc) == microsoft_event.start
+    assert copied_google_event.end.astimezone(pytz.utc) == microsoft_event.end
+
+
 def test_copy_all_day_event():
     """
     Tests that all/multi-day events are copied successfully
@@ -225,6 +290,7 @@ def test_already_copied_event_google():
 
 if __name__ == '__main__':
     test_copy_event()
+    test_copy_recurring_event()
     test_copy_all_day_event()
     test_already_copied_event_microsoft()
     test_already_copied_event_google()

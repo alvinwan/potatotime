@@ -104,17 +104,25 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         response.raise_for_status()
         return response.json()
     
-    def get_events(self):
-        url = 'https://graph.microsoft.com/v1.0/me/events'
+    def get_events(self, start_date=None, end_date=None):
+        url = 'https://graph.microsoft.com/v1.0/me/calendarView'
         headers = {
             'Authorization': f'Bearer {self.access_token}'
         }
+        
+        if not start_date:
+            start_date = datetime.datetime.utcnow().isoformat() + 'Z'
+        if not end_date:
+            end_date = (datetime.datetime.utcnow() + datetime.timedelta(days=30)).isoformat() + 'Z'
+        
         params = {
-            '$filter': f'start/dateTime ge \'{datetime.datetime.utcnow().isoformat()}\'',
+            'startDateTime': start_date,
+            'endDateTime': end_date,
             '$orderby': 'start/dateTime',
             '$top': 100,
             '$expand': "singleValueExtendedProperties($filter=id eq 'String {66f5a359-4659-4830-9070-00040ec6ac6e} Name potatotime')",
         }
+        
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         events = response.json().get('value', [])
