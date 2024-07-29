@@ -3,6 +3,7 @@ from caldav.elements import dav, cdav
 import pytz
 import datetime
 import os
+from typing import Optional
 from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 
 
@@ -88,7 +89,25 @@ END:VCALENDAR
         event.delete()
         print(f'Event "{event.instance.vevent.uid.value}" deleted')
 
-    def get_events(self):
+    def get_events(
+        self,
+        start: Optional[datetime.datetime]=None,
+        end: Optional[datetime.datetime]=None,
+        max_events: int=1000,
+    ):
         calendar = self.calendars[0]
-        now = datetime.datetime.utcnow()
-        return calendar.date_search(start=now, end=now + datetime.timedelta(days=365))  # Fetch events for the next year
+        
+        if not start:
+            start = datetime.datetime.utcnow()
+        if not end:
+            end = start + datetime.timedelta(days=30)
+        
+        all_events = []
+        events = calendar.date_search(start=start, end=end)
+        
+        for event in events:
+            all_events.append(event)
+            if len(all_events) >= max_events:
+                return all_events[:max_events]
+
+        return all_events

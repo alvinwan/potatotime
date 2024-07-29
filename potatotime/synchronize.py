@@ -1,14 +1,19 @@
 from typing import List
 from .services import CalendarServiceInterface, ExtendedEvent, StubEvent
+import datetime
 
 
-def synchronize(calendars: List[CalendarServiceInterface]):
-    # set maxevents (e.g., 1000) + maxdays. If maxevents hit before maxdays, just truncate both lists of events
-    # how to handle first sync doubling sync covearge?
+def synchronize(
+    calendars: List[CalendarServiceInterface],
+    max_days: int=365,
+    max_events: int=1000
+):
+    start = datetime.datetime.utcnow()
+    end = start + datetime.timedelta(days=max_days)
     calendars_events = [
         [
             ExtendedEvent.deserialize(event_data, calendar.event_serializer)
-            for event_data in calendar.get_events()
+            for event_data in calendar.get_events(start=start, end=end, max_events=max_events)
         ]
         for calendar in calendars
     ]

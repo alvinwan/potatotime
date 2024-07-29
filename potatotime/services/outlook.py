@@ -104,28 +104,54 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         response.raise_for_status()
         return response.json()
     
-    def get_events(self, start_date=None, end_date=None):
+    def get_events(
+        self,
+        start: Optional[datetime.datetime]=None,
+        end: Optional[datetime.datetime]=None,
+        max_events: int=1000,
+        results_per_page: int=100,
+    ):
         url = 'https://graph.microsoft.com/v1.0/me/calendarView'
         headers = {
             'Authorization': f'Bearer {self.access_token}'
         }
         
-        if not start_date:
-            start_date = datetime.datetime.utcnow().isoformat() + 'Z'
-        if not end_date:
-            end_date = (datetime.datetime.utcnow() + datetime.timedelta(days=30)).isoformat() + 'Z'
+        if not start:
+            start = datetime.datetime.utcnow()
+        if not end:
+            end = start + datetime.timedelta(days=30)
         
         params = {
-            'startDateTime': start_date,
-            'endDateTime': end_date,
+            'startDateTime': start.isoformat() + 'Z',
+            'endDateTime': end.isoformat() + 'Z',
             '$orderby': 'start/dateTime',
-            '$top': 100,
+            '$top': results_per_page,
             '$expand': "singleValueExtendedProperties($filter=id eq 'String {66f5a359-4659-4830-9070-00040ec6ac6e} Name potatotime')",
         }
         
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        events = response.json().get('value', [])
+        events = []
+        next_link = None
+
+        while True:
+            if next_link:
+                response = requests.get(next_link, headers=headers)
+            else:
+                response = requests.get(url, headers=headers, params=params)
+
+            response.raise_for_status()
+            response_data = response.json()
+            events.extend(response_data.get('value', []))
+            
+            # Check if we have reached the maximum number of events
+            if len(events) >= max_events:
+                events = events[:max_events]
+                break
+            
+            # Check if there's a next page
+            next_link = response_data.get('@odata.nextLink')
+            if not next_link:
+                break
+        
         return events
 
     def create_event(self, event_data: dict, source_event_id: Optional[str]):

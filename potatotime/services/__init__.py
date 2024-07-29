@@ -18,7 +18,12 @@ class CalendarServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def get_events(self):
+    def get_events(
+        self,
+        start: Optional[datetime]=None,
+        end: Optional[datetime]=None,
+        max_events: int=1000,
+    ):
         pass
 
     @abstractmethod

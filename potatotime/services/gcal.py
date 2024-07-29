@@ -71,12 +71,44 @@ class GoogleCalendarService(CalendarServiceInterface):
                 token.write(creds.to_json())
         self.service = build('calendar', 'v3', credentials=creds)
     
-    def get_events(self):
-        now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        events_result = self.service.events().list(calendarId='primary', timeMin=now,
-                                                   maxResults=100, singleEvents=True,
-                                                   orderBy='startTime').execute()
-        events = events_result.get('items', [])
+    def get_events(
+        self,
+        start: Optional[datetime.datetime]=None,
+        end: Optional[datetime.datetime]=None,
+        max_events: int=1000,
+        results_per_page: int=100,
+    ):
+        if not start:
+            start = datetime.datetime.utcnow()
+        if not end:
+            end = start + datetime.timedelta(days=30)
+        
+        events = []
+        page_token = None
+
+        while True:
+            events_result = self.service.events().list(
+                calendarId='primary',
+                timeMin=start.isoformat() + 'Z',
+                timeMax=end.isoformat() + 'Z',
+                maxResults=min(results_per_page, max_events - len(events)),  # Ensure we do not exceed max_events
+                singleEvents=True,
+                orderBy='startTime',
+                pageToken=page_token
+            ).execute()
+
+            events.extend(events_result.get('items', []))
+            
+            # Check if we have reached the maximum number of events
+            if len(events) >= max_events:
+                events = events[:max_events]
+                break
+            
+            # Get the next page token, if there is one
+            page_token = events_result.get('nextPageToken')
+            if not page_token:
+                break
+
         return events
 
     def create_event(self, event_data: dict, source_event_id: Optional[str]):
