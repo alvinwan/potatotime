@@ -21,8 +21,6 @@ SCOPES = ['Calendars.ReadWrite']
 
 class _MicrosoftEventSerializer(EventSerializer):
     def serialize(self, field_name: str, event: BaseEvent):
-        if field_name == 'recurrence':
-            return None, None # TODO: implement me
         if field_name in ('start', 'end'):
             field_value = getattr(event, field_name)
             return field_name, {
@@ -43,8 +41,6 @@ class _MicrosoftEventSerializer(EventSerializer):
             return time
         if field_name == 'url':
             return event_data.get('webLink')
-        if field_name == 'recurrence':
-            return None # TODO: implement me
         if field_name == 'source_event_id':
             return event_data.get('singleValueExtendedProperties', [{}])[0].get('value')
         if field_name == 'declined':

@@ -8,7 +8,7 @@ from . import CalendarServiceInterface, EventSerializer, BaseEvent
 
 class _AppleEventSerializer(EventSerializer):
     def serialize(self, field_name: str, event: BaseEvent):
-        if field_name in ('recurrence', 'is_all_day'):
+        if field_name in ('is_all_day',):
             return None, None # TODO: implement me
         if field_name in ('start', 'end'):
             return field_name, getattr(event, field_name)
@@ -19,7 +19,7 @@ class _AppleEventSerializer(EventSerializer):
             return event_data.instance.vevent.uid.value
         if field_name in ('start', 'end'):
             return getattr(event_data.instance.vevent, f"dt{field_name}").value
-        if field_name in ('url', 'recurrence', 'source_event_id', 'declined'):
+        if field_name in ('url', 'source_event_id', 'declined'):
             return None  # TODO: implement me
 
 

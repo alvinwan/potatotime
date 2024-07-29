@@ -12,8 +12,6 @@ import pytz
 
 class _GoogleEventSerializer(EventSerializer):
     def serialize(self, field_name: str, event: BaseEvent):
-        if field_name == 'recurrence':
-            return field_name, event.recurrence
         if field_name in ('start', 'end'):
             field_value = getattr(event, field_name)
             if event.is_all_day:
@@ -38,8 +36,6 @@ class _GoogleEventSerializer(EventSerializer):
             raise NotImplementedError('Unsupported start and end time format')
         if field_name == 'url':
             return event_data.get('htmlLink')
-        if field_name == 'recurrence':
-            return event_data.get('recurrence', [])
         if field_name == 'source_event_id':
             return event_data.get('extendedProperties', {}).get('private', {}).get('potatotime')
         if field_name == 'declined':

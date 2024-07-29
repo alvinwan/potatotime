@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 class CalendarServiceInterface(ABC):
@@ -43,7 +43,6 @@ class EventSerializer(ABC):
 class BaseEvent:
     start: datetime
     end: datetime
-    recurrence: Optional[List[str]]
     is_all_day: bool
 
     @classmethod

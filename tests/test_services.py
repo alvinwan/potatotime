@@ -65,7 +65,6 @@ def test_google_service():
     google_event_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
-        recurrence='RRULE:FREQ=WEEKLY;COUNT=10',
         is_all_day=False,
     ).serialize(google_service.event_serializer)
 
@@ -74,7 +73,6 @@ def test_google_service():
     google_update_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
-        recurrence=None,
         is_all_day=False,
     ).serialize(google_service.event_serializer)
     google_service.update_event(google_event.id, google_update_data)
@@ -128,7 +126,6 @@ def test_microsoft_service():
     microsoft_event_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
-        recurrence=None,
         is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
 
@@ -137,7 +134,6 @@ def test_microsoft_service():
     microsoft_update_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
-        recurrence=None,
         is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
     microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
@@ -184,14 +180,12 @@ def test_apple_service():
     apple_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.utc),
-        recurrence=None,
         is_all_day=False,
     ).serialize(apple_service.event_serializer)
     apple_event = apple_service.create_event(apple_event_data)
     apple_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
-        recurrence=None,
         is_all_day=False,
     ).serialize(apple_service.event_serializer)
     apple_service.update_event(apple_event, apple_update_data)
@@ -206,8 +200,8 @@ def test_apple_service():
 if __name__ == '__main__':
     # TODO: make these into real tests
     test_raw_google_service()
-    # test_google_service()
-    # test_raw_microsoft_service()
-    # test_microsoft_service()
-    # test_raw_apple_service()
-    # test_apple_service()
+    test_google_service()
+    test_raw_microsoft_service()
+    test_microsoft_service()
+    test_raw_apple_service()
+    test_apple_service()
