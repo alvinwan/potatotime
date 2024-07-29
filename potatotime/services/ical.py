@@ -8,10 +8,10 @@ from . import CalendarServiceInterface, EventSerializer, BaseEvent
 
 class _AppleEventSerializer(EventSerializer):
     def serialize(self, field_name: str, event: BaseEvent):
-        if field_name == 'recurrence':
-            return None # TODO: implement me
+        if field_name in ('recurrence', 'is_all_day'):
+            return None, None # TODO: implement me
         if field_name in ('start', 'end'):
-            return getattr(event, field_name)
+            return field_name, getattr(event, field_name)
         raise NotImplementedError(f"Serializing {field_name} is not supported")
     
     def deserialize(self, field_name: str, event_data):

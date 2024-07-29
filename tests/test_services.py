@@ -64,7 +64,8 @@ def test_google_service():
     google_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        recurrence='RRULE:FREQ=WEEKLY;COUNT=10'
+        recurrence='RRULE:FREQ=WEEKLY;COUNT=10',
+        is_all_day=False,
     ).serialize(google_service.event_serializer)
 
     google_event_data = google_service.create_event(google_event_data, source_event_id='')
@@ -72,7 +73,8 @@ def test_google_service():
     google_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        recurrence=None
+        recurrence=None,
+        is_all_day=False,
     ).serialize(google_service.event_serializer)
     google_service.update_event(google_event.id, google_update_data)
 
@@ -126,6 +128,7 @@ def test_microsoft_service():
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
+        is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
 
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id='')
@@ -134,6 +137,7 @@ def test_microsoft_service():
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
+        is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
     microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
 
@@ -180,12 +184,14 @@ def test_apple_service():
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.utc),
         recurrence=None,
+        is_all_day=False,
     ).serialize(apple_service.event_serializer)
     apple_event = apple_service.create_event(apple_event_data)
     apple_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
         recurrence=None,
+        is_all_day=False,
     ).serialize(apple_service.event_serializer)
     apple_service.update_event(apple_event, apple_update_data)
 

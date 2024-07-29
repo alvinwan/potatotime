@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, asdict, field, fields
+from dataclasses import dataclass, fields
 from datetime import datetime
-from typing import List, Optional, Dict, ClassVar
+from typing import List, Optional
 
 
 class CalendarServiceInterface(ABC):
@@ -44,6 +44,7 @@ class BaseEvent:
     start: datetime
     end: datetime
     recurrence: Optional[List[str]]
+    is_all_day: bool
 
     @classmethod
     def from_(cls, other: 'BaseEvent'):
@@ -57,16 +58,19 @@ class BaseEvent:
 class StubEvent(BaseEvent):
     """Used to serialize payloads for APIs"""
     def serialize(self, serializer: EventSerializer) -> dict:
-        return {
-            field.name: serializer.serialize(field.name, self)
-            for field in fields(self)
-        }
+        payload = {}
+        for field in fields(self):
+            key, value = serializer.serialize(field.name, self)
+            if key is not None:
+                payload[key] = value
+        return payload
 
 
 @dataclass
 class CreatedEvent(BaseEvent):
     """Used to standardize event payloads returned by APIs"""
     id: str
+    url: str
     
     @classmethod
     def deserialize(cls, event_data: dict, serializer: EventSerializer):

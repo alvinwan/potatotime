@@ -22,13 +22,15 @@ SCOPES = ['Calendars.ReadWrite']
 class _MicrosoftEventSerializer(EventSerializer):
     def serialize(self, field_name: str, event: BaseEvent):
         if field_name == 'recurrence':
-            return None # TODO: implement me
+            return None, None # TODO: implement me
         if field_name in ('start', 'end'):
             field_value = getattr(event, field_name)
-            return {
+            return field_name, {
                 'dateTime': field_value.isoformat(),
                 'timeZone': field_value.tzinfo.tzname(field_value) if field_value.tzinfo else 'UTC'
             }
+        if field_name == 'is_all_day':
+            return 'isAllDay', event.is_all_day
         raise NotImplementedError(f"Serializing {field_name} is not supported")
     
     def deserialize(self, field_name: str, event_data: dict):
@@ -37,7 +39,7 @@ class _MicrosoftEventSerializer(EventSerializer):
         if field_name in ('start', 'end'):
             time = datetime.datetime.fromisoformat(event_data[field_name]['dateTime'])
             timezone = pytz.timezone(event_data[field_name]['timeZone'])
-            time = time.replace(tzinfo=timezone)
+            time = timezone.localize(time)
             return time
         if field_name == 'url':
             return event_data.get('webLink')
@@ -51,6 +53,8 @@ class _MicrosoftEventSerializer(EventSerializer):
                 attendee['status']['response'] == 'declined' and attendee['emailAddress']['address'] == None
                 for attendee in event_data.get('attendees', [])
             ])
+        if field_name == 'is_all_day':
+            return event_data.get('isAllDay', False)
 
 
 class MicrosoftCalendarService(CalendarServiceInterface):

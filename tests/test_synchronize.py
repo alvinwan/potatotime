@@ -23,6 +23,7 @@ def test_copy_event():
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
+        is_all_day=False,
     ).serialize(google_service.event_serializer)
     google_event_data = google_service.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
@@ -31,6 +32,7 @@ def test_copy_event():
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
+        is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
@@ -56,6 +58,62 @@ def test_copy_event():
     assert copied_google_event.end.astimezone(pytz.utc) == microsoft_event.end
 
 
+def test_copy_all_day_event():
+    """
+    Tests that all/multi-day events are copied successfully
+    """
+    google_service = GoogleCalendarService()
+    google_service.authorize()
+
+    microsoft_service = MicrosoftCalendarService()
+    microsoft_service.authorize()
+
+    assert len(google_service.get_events()) == 0
+    assert len(microsoft_service.get_events()) == 0
+
+    google_event_data = StubEvent(
+        start=datetime.datetime(2024, 8, 1, 0, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        end=datetime.datetime(2024, 8, 3, 0, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        recurrence=None,
+        is_all_day=True,
+    ).serialize(google_service.event_serializer)
+    google_event_data = google_service.create_event(google_event_data, source_event_id=None)
+    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
+
+    # NOTE: Microsoft needs date-aligned datetimes in order for all-day event
+    # creation to succeed.
+    microsoft_event_data = StubEvent(
+        start=datetime.datetime(2024, 8, 2, 0, 0, 0, tzinfo=pytz.utc),
+        end=datetime.datetime(2024, 8, 4, 0, 0, 0, tzinfo=pytz.utc),
+        recurrence=None,
+        is_all_day=True,
+    ).serialize(microsoft_service.event_serializer)
+    microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
+
+    new_events = synchronize([google_service, microsoft_service])
+
+    google_service.delete_event(google_event.id, is_copy=False)
+    for event in new_events[(1, 0)]:
+        google_service.delete_event(event.id)
+
+    microsoft_service.delete_event(microsoft_event.id)
+    for event in new_events[(0, 1)]:
+        microsoft_service.delete_event(event.id)
+
+    assert len(new_events[(0, 1)] + new_events[(1, 0)]) == 2, f"Expected 2 sync'ed events. Got: {len(new_events)}"
+
+    copied_microsoft_event = new_events[(0, 1)][0]
+    assert copied_microsoft_event.start == google_event.start.astimezone(pytz.utc)
+    assert copied_microsoft_event.end == google_event.end.astimezone(pytz.utc)
+    assert copied_microsoft_event.is_all_day
+
+    copied_google_event = new_events[(1, 0)][0]
+    assert copied_google_event.start.astimezone(pytz.utc) == microsoft_event.start
+    assert copied_google_event.end.astimezone(pytz.utc) == microsoft_event.end
+    assert copied_google_event.is_all_day
+
+
 def test_already_copied_event_microsoft():
     """
     Tests whether Microsoft events properly track (a) that it was createad by
@@ -74,6 +132,7 @@ def test_already_copied_event_microsoft():
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
+        is_all_day=False,
     ).serialize(google_service.event_serializer)
     google_event_data = google_service.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
@@ -116,6 +175,7 @@ def test_already_copied_event_google():
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
+        is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
@@ -170,6 +230,7 @@ def test_already_copied_event_google():
 
 if __name__ == '__main__':
     test_copy_event()
+    test_copy_all_day_event()
     test_already_copied_event_microsoft()
     test_already_copied_event_google()
 
