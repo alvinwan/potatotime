@@ -79,4 +79,5 @@ class CreatedEvent(BaseEvent):
 @dataclass
 class ExtendedEvent(CreatedEvent):
     """Used to extract additional information from payloads returned by APIs"""
+    declined: bool = False
     source_event_id: Optional[str] = None

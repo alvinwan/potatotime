@@ -34,6 +34,7 @@ def synchronize_from_to(
         if (  # Do not copy any of the following events
             event1.source_event_id is not None  # copy created by PotatoTime
             or event1.id in source_event_ids  # events already sync'ed
+            or event1.declined  # event declined by user (only implemented for Google)
         ):
             continue
 

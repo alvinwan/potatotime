@@ -28,6 +28,9 @@ class _GoogleEventSerializer(EventSerializer):
             return event_data.get('recurrence', [])
         if field_name == 'source_event_id':
             return event_data.get('extendedProperties', {}).get('private', {}).get('potatotime')
+        if field_name == 'declined':
+            return any([attendee.get('self') and attendee['responseStatus'] == 'declined'
+                        for attendee in event_data.get('attendees', [])])
 
 
 class GoogleCalendarService(CalendarServiceInterface):

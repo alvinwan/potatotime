@@ -140,10 +140,42 @@ def test_already_copied_event_google():
     assert copied_google_event.end == microsoft_event.end.astimezone(pytz.utc)
 
 
+# # TODO: automate setting up then declining an event
+# def test_ignore_declined_google():
+#     google_service = GoogleCalendarService()
+#     google_service.authorize()
+
+#     microsoft_service = MicrosoftCalendarService()
+#     microsoft_service.authorize()
+
+#     assert len(microsoft_service.get_events()) == 0
+
+#     new_events = synchronize([google_service, microsoft_service])
+#     assert len(new_events[(0, 1)] + new_events[(1, 0)]) == 0, f"Expected 0 sync'ed events. Got: {len(new_events)}"
+
+
+# # # TODO: automate setting up then declining an event
+# def test_ignore_declined_microsoft():
+#     google_service = GoogleCalendarService()
+#     google_service.authorize()
+
+#     microsoft_service = MicrosoftCalendarService()
+#     microsoft_service.authorize()
+
+#     assert len(google_service.get_events()) == 0
+
+#     new_events = synchronize([google_service, microsoft_service])
+#     assert len(new_events[(0, 1)] + new_events[(1, 0)]) == 0, f"Expected 0 sync'ed events. Got: {len(new_events)}"
+
+
 if __name__ == '__main__':
     test_copy_event()
     test_already_copied_event_microsoft()
     test_already_copied_event_google()
+
+    # TODO: finish these tests
+    # test_ignore_declined_google() # Need to finish writing test
+    # test_ignore_declined_microsoft() # Need to get working
 
     # TODO: add these tests
     # test_cannot_update_user_event()
@@ -151,3 +183,4 @@ if __name__ == '__main__':
     # test_update_event() # make sure updates propogate
     # test_copy_recurring_event()
     # test_copy_past_recurring_event()
+    pass

@@ -45,6 +45,12 @@ class _MicrosoftEventSerializer(EventSerializer):
             return None # TODO: implement me
         if field_name == 'source_event_id':
             return event_data.get('singleValueExtendedProperties', [{}])[0].get('value')
+        if field_name == 'declined':
+            # TODO: Not fully implemented. Pass the user's email address to finish implementing
+            return any([
+                attendee['status']['response'] == 'declined' and attendee['emailAddress']['address'] == None
+                for attendee in event_data.get('attendees', [])
+            ])
 
 
 class MicrosoftCalendarService(CalendarServiceInterface):

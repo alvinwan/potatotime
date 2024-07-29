@@ -19,7 +19,7 @@ class _AppleEventSerializer(EventSerializer):
             return event_data.instance.vevent.uid.value
         if field_name in ('start', 'end'):
             return getattr(event_data.instance.vevent, f"dt{field_name}").value
-        if field_name in ('url', 'recurrence', 'source_event_id'):
+        if field_name in ('url', 'recurrence', 'source_event_id', 'declined'):
             return None  # TODO: implement me
 
 
