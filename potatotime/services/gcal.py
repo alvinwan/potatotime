@@ -15,9 +15,13 @@ class _GoogleEventSerializer(EventSerializer):
         if field_name == 'recurrence':
             return field_name, event.recurrence
         if field_name in ('start', 'end'):
+            field_value = getattr(event, field_name)
             if event.is_all_day:
-                return field_name, {'date': getattr(event, field_name).strftime('%Y-%m-%d') }
-            return field_name, {'dateTime': getattr(event, field_name).isoformat()}
+                return field_name, {'date': field_value.strftime('%Y-%m-%d') }
+            return field_name, {
+                'dateTime': field_value.isoformat(),
+                'timeZone': getattr(field_value.tzinfo, 'zone', field_value.tzname()) if field_value.tzinfo else 'UTC'
+            }
         if field_name == 'is_all_day':
             return None, None
         raise NotImplementedError(f"Serializing {field_name} is not supported")

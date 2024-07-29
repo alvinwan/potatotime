@@ -2,6 +2,7 @@ from potatotime.services import StubEvent, CreatedEvent
 from potatotime.services.gcal import GoogleCalendarService
 from potatotime.services.outlook import MicrosoftCalendarService
 from potatotime.services.ical import AppleCalendarService
+from utils import TIMEZONE
 import datetime
 import pytz
 
@@ -62,8 +63,8 @@ def test_google_service():
     google_service.authorize()
     
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
         recurrence='RRULE:FREQ=WEEKLY;COUNT=10',
         is_all_day=False,
     ).serialize(google_service.event_serializer)
@@ -71,8 +72,8 @@ def test_google_service():
     google_event_data = google_service.create_event(google_event_data, source_event_id='')
     google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
     google_update_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(google_service.event_serializer)
@@ -125,8 +126,8 @@ def test_microsoft_service():
     microsoft_service.authorize()
 
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
@@ -134,8 +135,8 @@ def test_microsoft_service():
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id='')
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
     microsoft_update_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
@@ -205,8 +206,8 @@ def test_apple_service():
 if __name__ == '__main__':
     # TODO: make these into real tests
     test_raw_google_service()
-    test_google_service()
-    test_raw_microsoft_service()
-    test_microsoft_service()
-    test_raw_apple_service()
-    test_apple_service()
+    # test_google_service()
+    # test_raw_microsoft_service()
+    # test_microsoft_service()
+    # test_raw_apple_service()
+    # test_apple_service()

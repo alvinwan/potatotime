@@ -27,7 +27,7 @@ class _MicrosoftEventSerializer(EventSerializer):
             field_value = getattr(event, field_name)
             return field_name, {
                 'dateTime': field_value.isoformat(),
-                'timeZone': field_value.tzinfo.tzname(field_value) if field_value.tzinfo else 'UTC'
+                'timeZone': getattr(field_value.tzinfo, 'zone', field_value.tzname()) if field_value.tzinfo else 'UTC'
             }
         if field_name == 'is_all_day':
             return 'isAllDay', event.is_all_day

@@ -2,6 +2,7 @@ from potatotime.services import StubEvent, CreatedEvent
 from potatotime.services.gcal import GoogleCalendarService
 from potatotime.services.outlook import MicrosoftCalendarService
 from potatotime.synchronize import synchronize
+from utils import TIMEZONE
 import datetime
 import pytz
 
@@ -20,8 +21,8 @@ def test_copy_event():
     assert len(microsoft_service.get_events()) == 0
 
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(google_service.event_serializer)
@@ -29,8 +30,8 @@ def test_copy_event():
     google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
 
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
@@ -72,8 +73,8 @@ def test_copy_all_day_event():
     assert len(microsoft_service.get_events()) == 0
 
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 0, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 3, 0, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 0, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 3, 0, 0, 0)),
         recurrence=None,
         is_all_day=True,
     ).serialize(google_service.event_serializer)
@@ -129,8 +130,8 @@ def test_already_copied_event_microsoft():
     assert len(microsoft_service.get_events()) == 0
 
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(google_service.event_serializer)
@@ -172,8 +173,8 @@ def test_already_copied_event_google():
     assert len(microsoft_service.get_events()) == 0
 
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
+        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
         recurrence=None,
         is_all_day=False,
     ).serialize(microsoft_service.event_serializer)
