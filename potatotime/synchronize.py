@@ -3,7 +3,8 @@ from .services import CalendarServiceInterface, ExtendedEvent, StubEvent
 
 
 def synchronize(calendars: List[CalendarServiceInterface]):
-    # TODO: handle more than 100 events
+    # set maxevents (e.g., 1000) + maxdays. If maxevents hit before maxdays, just truncate both lists of events
+    # how to handle first sync doubling sync covearge?
     calendars_events = [
         [
             ExtendedEvent.deserialize(event_data, calendar.event_serializer)
@@ -27,13 +28,17 @@ def synchronize_from_to(
     calendar2: CalendarServiceInterface,
     events2: List[ExtendedEvent]
 ) -> List[str]:
-    source_event_ids = {event.source_event_id: event for event in events2}
+    source_event_ids = {
+        event.source_event_id: event for event in events2
+        if event.source_event_id
+    }
 
     new_events = []
     updated_events = []
     for event1 in events1:
+        # Handle edited events
         if event1.id in source_event_ids:  # events already sync'ed
-            event2 = source_event_ids[event1.id]
+            event2 = source_event_ids.pop(event1.id)
             copy_stub = StubEvent.from_(event2)
             orig_stub = StubEvent.from_(event1)
             if copy_stub == orig_stub:  # if still equal to original, we're done
@@ -44,6 +49,7 @@ def synchronize_from_to(
             copy = ExtendedEvent.deserialize(copy_data, calendar2.event_serializer)
             updated_events.append(copy)
 
+        # Handle newly-created events
         if (  # Do not copy any of the following events
             event1.source_event_id is not None  # copy created by PotatoTime
             or event1.declined  # event declined by user (only implemented for Google)
@@ -54,4 +60,9 @@ def synchronize_from_to(
         copy2_data = calendar2.create_event(copy2_data, source_event_id=event1.id)
         copy2 = ExtendedEvent.deserialize(copy2_data, calendar2.event_serializer)
         new_events.append(copy2)
+
+    # Handle deleted events
+    for event in source_event_ids.values():
+        calendar2.delete_event(event.id)
+
     return new_events, updated_events
