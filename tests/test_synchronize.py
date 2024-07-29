@@ -20,16 +20,16 @@ def test_copy_event():
     assert len(microsoft_service.get_events()) == 0
 
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
     ).serialize(google_service.event_serializer)
     google_event_data = google_service.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
 
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
     ).serialize(microsoft_service.event_serializer)
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)
@@ -71,8 +71,8 @@ def test_already_copied_event_microsoft():
     assert len(microsoft_service.get_events()) == 0
 
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
     ).serialize(google_service.event_serializer)
     google_event_data = google_service.create_event(google_event_data, source_event_id=None)
@@ -113,8 +113,8 @@ def test_already_copied_event_google():
     assert len(microsoft_service.get_events()) == 0
 
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
     ).serialize(microsoft_service.event_serializer)
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id=None)

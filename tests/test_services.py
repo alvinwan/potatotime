@@ -16,11 +16,11 @@ def test_raw_google_service():
         'description': 'A chance to hear more about Google\'s developer products.',
         'start': {
             'dateTime': '2024-08-01T09:00:00-07:00',
-            'timeZone': 'America/Los_Angeles',
+            'timeZone': 'US/Pacific',
         },
         'end': {
             'dateTime': '2024-08-01T17:00:00-07:00',
-            'timeZone': 'America/Los_Angeles',
+            'timeZone': 'US/Pacific',
         },
         'recurrence': [
             'RRULE:FREQ=WEEKLY;COUNT=10'
@@ -41,11 +41,11 @@ def test_raw_google_service():
         'description': 'A chance to hear more about Google\'s updated developer products.',
         'start': {
             'dateTime': '2024-08-02T10:00:00-07:00',
-            'timeZone': 'America/Los_Angeles',
+            'timeZone': 'US/Pacific',
         },
         'end': {
             'dateTime': '2024-08-02T18:00:00-07:00',
-            'timeZone': 'America/Los_Angeles',
+            'timeZone': 'US/Pacific',
         },
     }
     google_service.update_event(google_event['id'], google_update_data)
@@ -62,16 +62,16 @@ def test_google_service():
     google_service.authorize()
     
     google_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence='RRULE:FREQ=WEEKLY;COUNT=10'
     ).serialize(google_service.event_serializer)
 
     google_event_data = google_service.create_event(google_event_data, source_event_id='')
     google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
     google_update_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None
     ).serialize(google_service.event_serializer)
     google_service.update_event(google_event.id, google_update_data)
@@ -123,16 +123,16 @@ def test_microsoft_service():
     microsoft_service.authorize()
 
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
     ).serialize(microsoft_service.event_serializer)
 
     microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id='')
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
     microsoft_update_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
-        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('America/Los_Angeles')),
+        start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
+        end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.timezone('US/Pacific')),
         recurrence=None,
     ).serialize(microsoft_service.event_serializer)
     microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
