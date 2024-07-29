@@ -6,8 +6,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import datetime
 import pytz
-from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
-from typing import Optional
+from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from typing import Optional, List, Dict
 
 # Replace these values with your app's client ID, client secret, and redirect URI
 CLIENT_ID = os.environ['POTATOTIME_MSFT_CLIENT_ID']
@@ -53,7 +53,7 @@ class _MicrosoftEventSerializer(EventSerializer):
             return event_data.get('isAllDay', False)
 
 
-class MicrosoftCalendarService(CalendarServiceInterface):
+class MicrosoftService(ServiceInterface):
 
     def __init__(self):
         self.client_id = os.environ['POTATOTIME_MSFT_CLIENT_ID']
@@ -104,6 +104,32 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         response.raise_for_status()
         return response.json()
     
+    def list_calendars(self) -> List[Dict]:
+        url = "https://graph.microsoft.com/v1.0/me/calendars"
+        headers = {
+            'Authorization': f'Bearer {self.access_token}',
+            'Content-Type': 'application/json'
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        calendar_list = response.json()
+        return calendar_list.get('value', [])
+    
+    # TODO: duplicated from GoogleCalendar
+    def get_calendar(self, calendar_id: Optional[str]=None):
+        calendars = self.list_calendars()
+        for calendar in calendars:
+            if calendar['id'] == calendar_id or calendar_id is None:
+                return MicrosoftCalendar(self, calendar)
+        raise ValueError(f'Invalid calendar_id: {calendar_id}')
+    
+
+class MicrosoftCalendar(CalendarInterface):
+    def __init__(self, service, calendar_id):
+        self.service = service
+        self.calendar_id = calendar_id
+        self.event_serializer = _MicrosoftEventSerializer()
+    
     def get_events(
         self,
         start: Optional[datetime.datetime]=None,
@@ -113,7 +139,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
     ):
         url = 'https://graph.microsoft.com/v1.0/me/calendarView'
         headers = {
-            'Authorization': f'Bearer {self.access_token}'
+            'Authorization': f'Bearer {self.service.access_token}'
         }
         
         if not start:
@@ -157,7 +183,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
     def create_event(self, event_data: dict, source_event_id: Optional[str]):
         url = 'https://graph.microsoft.com/v1.0/me/events'
         headers = {
-            'Authorization': f'Bearer {self.access_token}',
+            'Authorization': f'Bearer {self.service.access_token}',
             'Content-Type': 'application/json'
         }
         event_data['subject'] = POTATOTIME_EVENT_SUBJECT
@@ -179,7 +205,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         # TODO: check the event is potatotime-created
         url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
         headers = {
-            'Authorization': f'Bearer {self.access_token}',
+            'Authorization': f'Bearer {self.service.access_token}',
             'Content-Type': 'application/json'
         }
         response = requests.patch(url, headers=headers, json=update_data)
@@ -192,7 +218,7 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         # TODO: check the event is potatotime-created
         url = f'https://graph.microsoft.com/v1.0/me/events/{event_id}'
         headers = {
-            'Authorization': f'Bearer {self.access_token}'
+            'Authorization': f'Bearer {self.service.access_token}'
         }
         response = requests.delete(url, headers=headers)
         response.raise_for_status()

@@ -1,12 +1,13 @@
 import datetime
 import os.path
+from urllib.error import HTTPError
 from googleapiclient import errors
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
-from typing import Optional
+from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from typing import Optional, List, Dict
 import pytz
 
 
@@ -45,7 +46,7 @@ class _GoogleEventSerializer(EventSerializer):
             return 'date' in event_data['start'] and 'date' in event_data['end']
 
 
-class GoogleCalendarService(CalendarServiceInterface):
+class GoogleService(ServiceInterface):
     
     def __init__(self):
         # If modifying these SCOPES, delete the file goog.json.
@@ -70,6 +71,29 @@ class GoogleCalendarService(CalendarServiceInterface):
             with open('goog.json', 'w') as token:
                 token.write(creds.to_json())
         self.service = build('calendar', 'v3', credentials=creds)
+
+    def list_calendars(self) -> List[Dict]:
+        try:
+            calendar_list = self.service.calendarList().list().execute()
+            return calendar_list.get('items', [])
+        except HTTPError as error:
+            print(f'An error occurred: {error}')
+            return []
+    
+    def get_calendar(self, calendar_id: Optional[str]=None):
+        calendars = self.list_calendars()
+        for calendar in calendars:
+            if calendar['id'] == calendar_id or calendar_id is None:
+                return GoogleCalendar(self.service, calendar_id)
+        raise ValueError(f'Invalid calendar_id: {calendar_id}')
+
+
+class GoogleCalendar(CalendarInterface):
+
+    def __init__(self, service, calendar_id):
+        self.service = service
+        self.calendar_id = calendar_id
+        self.event_serializer = _GoogleEventSerializer()
     
     def get_events(
         self,

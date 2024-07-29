@@ -10,12 +10,14 @@ POTATOTIME_EVENT_SUBJECT = "Busy"
 POTATOTIME_EVENT_DESCRIPTION = "Synchronized by PotatoTime 🥔"
 
 
-class CalendarServiceInterface(ABC):
-    event_serializer: 'EventSerializer'
-
+class ServiceInterface(ABC):
     @abstractmethod
     def authorize(self):
         pass
+
+
+class CalendarInterface(ABC):
+    event_serializer: 'EventSerializer'
 
     @abstractmethod
     def get_events(

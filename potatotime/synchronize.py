@@ -1,10 +1,10 @@
 from typing import List
-from .services import CalendarServiceInterface, ExtendedEvent, StubEvent
+from .services import CalendarInterface, ExtendedEvent, StubEvent
 import datetime
 
 
 def synchronize(
-    calendars: List[CalendarServiceInterface],
+    calendars: List[CalendarInterface],
     max_days: int=365,
     max_events: int=1000
 ):
@@ -28,9 +28,9 @@ def synchronize(
 
 
 def synchronize_from_to(
-    calendar1: CalendarServiceInterface,
+    calendar1: CalendarInterface,
     events1: List[ExtendedEvent],
-    calendar2: CalendarServiceInterface,
+    calendar2: CalendarInterface,
     events2: List[ExtendedEvent]
 ) -> List[str]:
     source_event_ids = {

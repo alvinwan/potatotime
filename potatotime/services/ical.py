@@ -1,10 +1,8 @@
 import caldav
-from caldav.elements import dav, cdav
-import pytz
 import datetime
 import os
-from typing import Optional
-from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from typing import Optional, List, Dict
+from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 
 
 class _AppleEventSerializer(EventSerializer):
@@ -24,7 +22,7 @@ class _AppleEventSerializer(EventSerializer):
             return None  # TODO: implement me
 
 
-class AppleCalendarService(CalendarServiceInterface):
+class AppleService(ServiceInterface):
     
     def __init__(self):
         self.client = caldav.DAVClient(
@@ -40,18 +38,26 @@ class AppleCalendarService(CalendarServiceInterface):
         # Authorization is handled in the constructor for Apple Calendar
         pass
 
-    def _get_event(self, event_id):
-        calendar = self.calendars[0]
-        uid, start_time = event_id
-        events = calendar.date_search(start=start_time, end=start_time + datetime.timedelta(hours=1))
-        for event in events:
-            if uid in event.data:
-                return event
-        print(f"No event found with UID: {event_id}")
-        return None
+    def list_calendars(self) -> List[Dict]:
+        return [{'id': cal.url, 'name': cal.name, 'object': cal} for cal in self.calendars]
+
+    # TODO: duplicated from GoogleCalendar
+    def get_calendar(self, calendar_id: Optional[str]=None):
+        calendars = self.list_calendars()
+        for calendar in calendars:
+            if calendar['id'] == calendar_id or calendar_id is None:
+                return AppleCalendar(self, calendar['object'])
+        raise ValueError(f'Invalid calendar_id: {calendar_id}')
+
+
+class AppleCalendar(CalendarInterface):
+
+    def __init__(self, service, calendar):
+        self.service = service
+        self.calendar = calendar
+        self.event_serializer = _AppleEventSerializer()
 
     def create_event(self, event_data):
-        calendar = self.calendars[0]  # Select the first calendar
         event = f"""
 BEGIN:VCALENDAR
 VERSION:2.0
@@ -65,7 +71,7 @@ LOCATION:{event_data.get('location', '')}
 END:VEVENT
 END:VCALENDAR
 """
-        new_event = calendar.add_event(event)
+        new_event = self.calendar.add_event(event)
         print(f"Event '{new_event.instance.vevent.uid.value}' created with UID: {new_event.instance.vevent.uid.value}")
         return new_event
 
@@ -94,16 +100,14 @@ END:VCALENDAR
         start: Optional[datetime.datetime]=None,
         end: Optional[datetime.datetime]=None,
         max_events: int=1000,
-    ):
-        calendar = self.calendars[0]
-        
+    ):  
         if not start:
             start = datetime.datetime.utcnow()
         if not end:
             end = start + datetime.timedelta(days=30)
         
         all_events = []
-        events = calendar.date_search(start=start, end=end)
+        events = self.calendar.date_search(start=start, end=end)
         
         for event in events:
             all_events.append(event)

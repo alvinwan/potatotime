@@ -1,15 +1,16 @@
 from potatotime.services import StubEvent, CreatedEvent
-from potatotime.services.gcal import GoogleCalendarService
-from potatotime.services.outlook import MicrosoftCalendarService
-from potatotime.services.ical import AppleCalendarService
+from potatotime.services.gcal import GoogleService
+from potatotime.services.outlook import MicrosoftService
+from potatotime.services.ical import AppleService
 from utils import TIMEZONE
 import datetime
 import pytz
 
 
-def test_raw_google_service():
-    google_service = GoogleCalendarService()
+def test_raw_google_calendar():
+    google_service = GoogleService()
     google_service.authorize()
+    google_calendar = google_service.get_calendar()
     
     google_event_data = {
         'summary': 'Sample Event',
@@ -35,7 +36,7 @@ def test_raw_google_service():
         },
     }
 
-    google_event = google_service.create_event(google_event_data, source_event_id='')
+    google_event = google_calendar.create_event(google_event_data, source_event_id='')
     google_update_data = {
         'summary': 'Updated Sample Event',
         'location': '500 Terry A Francois Blvd, San Francisco, CA 94158',
@@ -49,44 +50,46 @@ def test_raw_google_service():
             'timeZone': 'US/Pacific',
         },
     }
-    google_service.update_event(google_event['id'], google_update_data)
+    google_calendar.update_event(google_event['id'], google_update_data)
 
-    for event in google_service.get_events():
+    for event in google_calendar.get_events():
         start = event['start'].get('dateTime', event['start'].get('date'))
         print(start, event.get('summary'))
 
-    google_service.delete_event(google_event['id'])
+    google_calendar.delete_event(google_event['id'])
 
 
-def test_google_service():
-    google_service = GoogleCalendarService()
+def test_google_calendar():
+    google_service = GoogleService()
     google_service.authorize()
+    google_calendar = google_service.get_calendar()
     
     google_event_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
         is_all_day=False,
-    ).serialize(google_service.event_serializer)
+    ).serialize(google_calendar.event_serializer)
 
-    google_event_data = google_service.create_event(google_event_data, source_event_id='')
-    google_event = CreatedEvent.deserialize(google_event_data, google_service.event_serializer)
+    google_event_data = google_calendar.create_event(google_event_data, source_event_id='')
+    google_event = CreatedEvent.deserialize(google_event_data, google_calendar.event_serializer)
     google_update_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
         is_all_day=False,
-    ).serialize(google_service.event_serializer)
-    google_service.update_event(google_event.id, google_update_data)
+    ).serialize(google_calendar.event_serializer)
+    google_calendar.update_event(google_event.id, google_update_data)
 
-    for event_data in google_service.get_events():
-        event = CreatedEvent.deserialize(event_data, google_service.event_serializer)
+    for event_data in google_calendar.get_events():
+        event = CreatedEvent.deserialize(event_data, google_calendar.event_serializer)
         print(event.id, event.start, event.end)
 
-    google_service.delete_event(google_event.id)
+    google_calendar.delete_event(google_event.id)
 
 
-def test_raw_microsoft_service():
-    microsoft_service = MicrosoftCalendarService()
+def test_raw_microsoft_calendar():
+    microsoft_service = MicrosoftService()
     microsoft_service.authorize()
+    microsoft_calendar = microsoft_service.get_calendar()
     
     microsoft_event_data = {
         "subject": "Discuss the new project",
@@ -107,47 +110,49 @@ def test_raw_microsoft_service():
         }
     }
 
-    microsoft_event = microsoft_service.create_event(microsoft_event_data, source_event_id='')
+    microsoft_event = microsoft_calendar.create_event(microsoft_event_data, source_event_id='')
     microsoft_update_data = {
         "subject": "Discuss the new project - Updated",
     }
-    microsoft_service.update_event(microsoft_event['id'], microsoft_update_data)
+    microsoft_calendar.update_event(microsoft_event['id'], microsoft_update_data)
 
-    for event in microsoft_service.get_events():
+    for event in microsoft_calendar.get_events():
         print(event['start']['dateTime'], event['subject'])
 
-    microsoft_service.delete_event(microsoft_event['id'])
+    microsoft_calendar.delete_event(microsoft_event['id'])
 
 
-def test_microsoft_service():
-    microsoft_service = MicrosoftCalendarService()
+def test_microsoft_calendar():
+    microsoft_service = MicrosoftService()
     microsoft_service.authorize()
+    microsoft_calendar = microsoft_service.get_calendar()
 
     microsoft_event_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
         is_all_day=False,
-    ).serialize(microsoft_service.event_serializer)
+    ).serialize(microsoft_calendar.event_serializer)
 
-    microsoft_event_data = microsoft_service.create_event(microsoft_event_data, source_event_id='')
-    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_service.event_serializer)
+    microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id='')
+    microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
     microsoft_update_data = StubEvent(
         start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
         end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
         is_all_day=False,
-    ).serialize(microsoft_service.event_serializer)
-    microsoft_service.update_event(microsoft_event.id, microsoft_update_data)
+    ).serialize(microsoft_calendar.event_serializer)
+    microsoft_calendar.update_event(microsoft_event.id, microsoft_update_data)
 
-    for event_data in microsoft_service.get_events():
-        event = CreatedEvent.deserialize(event_data, microsoft_service.event_serializer)
+    for event_data in microsoft_calendar.get_events():
+        event = CreatedEvent.deserialize(event_data, microsoft_calendar.event_serializer)
         print(event.id, event.start, event.end)
 
-    microsoft_service.delete_event(microsoft_event.id)
+    microsoft_calendar.delete_event(microsoft_event.id)
 
 
-def test_raw_apple_service():
-    apple_service = AppleCalendarService()
+def test_raw_apple_calendar():
+    apple_service = AppleService()
     apple_service.authorize()
+    apple_calendar = apple_service.get_calendar()
     
     apple_event_data = {
         'start': datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
@@ -156,7 +161,7 @@ def test_raw_apple_service():
         'description': "This is a new event",
         'location': "Location"
     }
-    apple_event = apple_service.create_event(apple_event_data)
+    apple_event = apple_calendar.create_event(apple_event_data)
     apple_update_data = {
         'start': datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
         'end': datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
@@ -164,44 +169,45 @@ def test_raw_apple_service():
         'description': "This event has been edited",
         'location': "New Location"
     }
-    apple_service.update_event(apple_event, apple_update_data)
+    apple_calendar.update_event(apple_event, apple_update_data)
 
-    for event in apple_service.get_events():
+    for event in apple_calendar.get_events():
         component = event.instance.vevent
         print(component.dtstart.value, component.summary.value)
 
-    apple_service.delete_event(apple_event)
+    apple_calendar.delete_event(apple_event)
 
 
-def test_apple_service():
-    apple_service = AppleCalendarService()
+def test_apple_calendar():
+    apple_service = AppleService()
     apple_service.authorize()
+    apple_calendar = apple_service.get_calendar()
 
     apple_event_data = StubEvent(
         start=datetime.datetime(2024, 8, 1, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 1, 11, 0, 0, tzinfo=pytz.utc),
         is_all_day=False,
-    ).serialize(apple_service.event_serializer)
-    apple_event = apple_service.create_event(apple_event_data)
+    ).serialize(apple_calendar.event_serializer)
+    apple_event = apple_calendar.create_event(apple_event_data)
     apple_update_data = StubEvent(
         start=datetime.datetime(2024, 8, 2, 10, 0, 0, tzinfo=pytz.utc),
         end=datetime.datetime(2024, 8, 2, 11, 0, 0, tzinfo=pytz.utc),
         is_all_day=False,
-    ).serialize(apple_service.event_serializer)
-    apple_service.update_event(apple_event, apple_update_data)
+    ).serialize(apple_calendar.event_serializer)
+    apple_calendar.update_event(apple_event, apple_update_data)
 
-    for event_data in apple_service.get_events():
-        event = CreatedEvent.deserialize(event_data, apple_service.event_serializer)
+    for event_data in apple_calendar.get_events():
+        event = CreatedEvent.deserialize(event_data, apple_calendar.event_serializer)
         print(event.id, event.start, event.end)
 
-    apple_service.delete_event(apple_event)
+    apple_calendar.delete_event(apple_event)
 
 
 if __name__ == '__main__':
     # TODO: make these into real tests
-    test_raw_google_service()
-    test_google_service()
-    test_raw_microsoft_service()
-    test_microsoft_service()
-    test_raw_apple_service()
-    test_apple_service()
+    test_raw_google_calendar()
+    test_google_calendar()
+    test_raw_microsoft_calendar()
+    test_microsoft_calendar()
+    test_raw_apple_calendar()
+    test_apple_calendar()
