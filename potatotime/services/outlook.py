@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import datetime
 import pytz
-from . import CalendarServiceInterface, EventSerializer, BaseEvent
+from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 from typing import Optional
 
 # Replace these values with your app's client ID, client secret, and redirect URI
@@ -133,6 +133,11 @@ class MicrosoftCalendarService(CalendarServiceInterface):
         headers = {
             'Authorization': f'Bearer {self.access_token}',
             'Content-Type': 'application/json'
+        }
+        event_data['subject'] = POTATOTIME_EVENT_SUBJECT
+        event_data['body'] = {
+            "contentType": "HTML",
+            "content": POTATOTIME_EVENT_DESCRIPTION
         }
         event_data["singleValueExtendedProperties"] = [{
             "id": "String {66f5a359-4659-4830-9070-00040ec6ac6e} Name potatotime",

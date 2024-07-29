@@ -3,7 +3,7 @@ from caldav.elements import dav, cdav
 import pytz
 import datetime
 import os
-from . import CalendarServiceInterface, EventSerializer, BaseEvent
+from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 
 
 class _AppleEventSerializer(EventSerializer):
@@ -58,8 +58,8 @@ BEGIN:VEVENT
 UID:{datetime.datetime.now().timestamp()}@example.com
 DTSTART:{event_data['start'].strftime('%Y%m%dT%H%M%S')}
 DTEND:{event_data['end'].strftime('%Y%m%dT%H%M%S')}
-SUMMARY:{event_data.get('summary', '')}
-DESCRIPTION:{event_data.get('description', '')}
+SUMMARY:{POTATOTIME_EVENT_SUBJECT}
+DESCRIPTION:{POTATOTIME_EVENT_DESCRIPTION}
 LOCATION:{event_data.get('location', '')}
 END:VEVENT
 END:VCALENDAR

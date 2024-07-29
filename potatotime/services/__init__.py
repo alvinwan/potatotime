@@ -5,6 +5,11 @@ from typing import List, Optional, Union
 import pytz
 
 
+# TODO: new home for constants?
+POTATOTIME_EVENT_SUBJECT = "Busy"
+POTATOTIME_EVENT_DESCRIPTION = "Synchronized by PotatoTime 🥔"
+
+
 class CalendarServiceInterface(ABC):
     event_serializer: 'EventSerializer'
 

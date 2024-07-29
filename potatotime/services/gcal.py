@@ -5,7 +5,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from . import CalendarServiceInterface, EventSerializer, BaseEvent
+from . import CalendarServiceInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 from typing import Optional
 import pytz
 
@@ -82,6 +82,8 @@ class GoogleCalendarService(CalendarServiceInterface):
     def create_event(self, event_data: dict, source_event_id: Optional[str]):
         if source_event_id is not None:  # NOTE: Should only be None during testing
             event_data['extendedProperties'] = {'private': {'potatotime': source_event_id}}
+        event_data['summary'] = POTATOTIME_EVENT_SUBJECT
+        event_data['description'] = POTATOTIME_EVENT_DESCRIPTION
         event = self.service.events().insert(calendarId='primary', body=event_data).execute()
         print(f'Event created: {event.get("htmlLink")}')
         return event
