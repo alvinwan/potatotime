@@ -7,17 +7,9 @@ import json
 import datetime
 import pytz
 from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from potatotime.storage import Storage, FileStorage
 from typing import Optional, List, Dict
 
-# Replace these values with your app's client ID, client secret, and redirect URI
-CLIENT_ID = os.environ['POTATOTIME_MSFT_CLIENT_ID']
-CLIENT_SECRET = os.environ['POTATOTIME_MSFT_CLIENT_SECRET']
-REDIRECT_URI = 'http://localhost:8080'
-AUTHORITY = 'https://login.microsoftonline.com/common'
-AUTHORIZATION_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/authorize'
-TOKEN_ENDPOINT = f'{AUTHORITY}/oauth2/v2.0/token'
-SCOPES = ['Calendars.ReadWrite']
-    
 
 class _MicrosoftEventSerializer(EventSerializer):
     def serialize(self, field_name: str, event: BaseEvent):
@@ -61,28 +53,42 @@ class MicrosoftService(ServiceInterface):
         self.redirect_uri = 'http://localhost:8080'
         self.authorization_endpoint = f'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
         self.token_endpoint = f'https://login.microsoftonline.com/common/oauth2/v2.0/token'
-        self.scopes = ['Calendars.ReadWrite']
+        self.scopes = ['Calendars.ReadWrite', 'offline_access']
         self.event_serializer = _MicrosoftEventSerializer()
 
     def authorize(self):
         if os.path.exists('msft.json'):
             with open('msft.json', 'r') as f:
-                self.access_token = json.loads(f.read())['access_token']
+                credentials = json.loads(f.read())
+            self.access_token = credentials['access_token']
+            self.refresh_token = credentials.get('refresh_token')
 
+            # Try to use the access token
             url = "https://graph.microsoft.com/v1.0/me/events"
             headers = {
                 "Authorization": f"Bearer {self.access_token}"
             }
-            
+
             response = requests.get(url, headers=headers)
+            if response.status_code == 401 and 'access token expired' in response.text:
+                # Access token might be expired, refresh it
+                self._refresh_access_token()
+                headers["Authorization"] = f"Bearer {self.access_token}"
+                response = requests.get(url, headers=headers)
+            
             if response.status_code == 200:
                 return
 
+        # If no valid access token or refresh token, start authorization flow
         auth_code = self._get_auth_code()
         token_response = self._get_token(auth_code)
         self.access_token = token_response['access_token']
+        self.refresh_token = token_response.get('refresh_token')
         with open('msft.json', 'w') as f:
-            f.write(json.dumps({'access_token': self.access_token}))
+            f.write(json.dumps({
+                'access_token': self.access_token,
+                'refresh_token': self.refresh_token
+            }))
 
     def _get_auth_code(self):
         auth_url = f'{self.authorization_endpoint}?client_id={self.client_id}&response_type=code&redirect_uri={self.redirect_uri}&scope={" ".join(self.scopes)}'
@@ -103,6 +109,26 @@ class MicrosoftService(ServiceInterface):
         response = requests.post(self.token_endpoint, data=data)
         response.raise_for_status()
         return response.json()
+    
+    def _refresh_token(self, refresh_token):
+        data = {
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+            'scope': ' '.join(self.scopes),
+        }
+        response = requests.post(self.token_endpoint, data=data)
+        response.raise_for_status()
+        return response.json()
+    
+    def _refresh_access_token(self):
+        if not hasattr(self, 'refresh_token'):
+            raise ValueError("No refresh token available. Please authenticate first.")
+        token_response = self._refresh_token(self.refresh_token)
+        self.access_token = token_response.get('access_token')
+        self.refresh_token = token_response.get('refresh_token', self.refresh_token)
+        return token_response
     
     def list_calendars(self) -> List[Dict]:
         url = "https://graph.microsoft.com/v1.0/me/calendars"
