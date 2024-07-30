@@ -59,7 +59,8 @@ class GoogleService(ServiceInterface):
         ]
         self.event_serializer = _GoogleEventSerializer()
 
-    def authorize(self, user_id: str, storage: Storage=FileStorage()):
+    def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
+        # TODO: This needs some major refactoring
         creds = None
         if storage.has_user_credentials(user_id):
             creds = Credentials.from_authorized_user_info(
@@ -70,11 +71,18 @@ class GoogleService(ServiceInterface):
             if creds and creds.expired and creds.refresh_token:
                 # TODO: what if refresh fails?
                 creds.refresh(Request())
-            else:
+            elif interactive:
                 # TODO: replace str with constant
                 flow = InstalledAppFlow.from_client_config(storage.get_client_credentials('google'), self.scopes)
                 creds = flow.run_local_server(port=8080, access_type='offline', prompt='consent')
-            storage.save_user_credentials(user_id, creds.to_json())
+
+            try:
+                storage.save_user_credentials(user_id, creds.to_json())
+            except Exception as e:
+                print(f"Failed to save updated credentials: {e}")
+
+            if not creds:
+                raise Exception('No credentials found, or credentials are expired.')
         self.service = build('calendar', 'v3', credentials=creds)
 
     def list_calendars(self) -> List[Dict]:

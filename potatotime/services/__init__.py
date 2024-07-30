@@ -13,7 +13,13 @@ POTATOTIME_EVENT_DESCRIPTION = "Synchronized by PotatoTime 🥔"
 
 class ServiceInterface(ABC):
     @abstractmethod
-    def authorize(self, user_id: str, storage: Storage=FileStorage()):
+    def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
+        """
+
+        :param interactive: If true, will prompt user for authentication via a
+            browser automatically. If not, throw an error when authentication
+            fails.
+        """
         pass
 
 

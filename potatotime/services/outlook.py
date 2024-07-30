@@ -56,37 +56,43 @@ class MicrosoftService(ServiceInterface):
         self.scopes = ['Calendars.ReadWrite', 'offline_access']
         self.event_serializer = _MicrosoftEventSerializer()
 
-    def authorize(self, user_id: str, storage: Storage=FileStorage()):
+    def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
+        # TODO: This needs some major refactoring
+        self.access_token = None
         if storage.has_user_credentials(user_id):
             credentials = storage.get_user_credentials(user_id)
             self.access_token = credentials['access_token']
             self.refresh_token = credentials.get('refresh_token')
 
-            # Try to use the access token
-            url = "https://graph.microsoft.com/v1.0/me/events"
-            headers = {
-                "Authorization": f"Bearer {self.access_token}"
-            }
+        # Try to use the access token
+        url = "https://graph.microsoft.com/v1.0/me/events"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}"
+        }
 
-            response = requests.get(url, headers=headers)
-            if response.status_code == 401:
+        response = requests.get(url, headers=headers)
+        
+        if not self.access_token or response.status_code != 200:
+            if self.refresh_token and response.status_code == 401:
                 # Access token might be expired, refresh it
                 self._refresh_access_token()
-                headers["Authorization"] = f"Bearer {self.access_token}"
-                response = requests.get(url, headers=headers)
-            
-            if response.status_code == 200:
-                return
+            elif interactive:
+                # If no valid access token or refresh token, start authorization flow
+                auth_code = self._get_auth_code()
+                token_response = self._get_token(auth_code)
+                self.access_token = token_response['access_token']
+                self.refresh_token = token_response.get('refresh_token')
 
-        # If no valid access token or refresh token, start authorization flow
-        auth_code = self._get_auth_code()
-        token_response = self._get_token(auth_code)
-        self.access_token = token_response['access_token']
-        self.refresh_token = token_response.get('refresh_token')
-        storage.save_user_credentials(user_id, json.dumps({
-            'access_token': self.access_token,
-            'refresh_token': self.refresh_token
-        }))
+            try:
+                storage.save_user_credentials(user_id, json.dumps({
+                    'access_token': self.access_token,
+                    'refresh_token': self.refresh_token
+                }))
+            except Exception as e:
+                print(f"Failed to save updated credentials: {e}")
+
+            if not self.access_token:
+                raise Exception('No credentials found, or credentials are expired.')
 
     def _get_auth_code(self):
         auth_url = f'{self.authorization_endpoint}?client_id={self.client_id}&response_type=code&redirect_uri={self.redirect_uri}&scope={" ".join(self.scopes)}'

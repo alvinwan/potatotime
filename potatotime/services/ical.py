@@ -3,6 +3,7 @@ import datetime
 import os
 from typing import Optional, List, Dict
 from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from potatotime.storage import Storage, FileStorage
 
 
 class _AppleEventSerializer(EventSerializer):
@@ -34,7 +35,7 @@ class AppleService(ServiceInterface):
         self.calendars = self.principal.calendars()
         self.event_serializer = _AppleEventSerializer()
 
-    def authorize(self):
+    def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
         # Authorization is handled in the constructor for Apple Calendar
         pass
 
