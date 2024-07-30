@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Optional
+from potatotime.storage import Storage, FileStorage
 import pytz
 
 
@@ -12,7 +13,7 @@ POTATOTIME_EVENT_DESCRIPTION = "Synchronized by PotatoTime 🥔"
 
 class ServiceInterface(ABC):
     @abstractmethod
-    def authorize(self):
+    def authorize(self, user_id: str, storage: Storage=FileStorage()):
         pass
 
 

@@ -2,14 +2,14 @@ from potatotime.services import StubEvent, CreatedEvent
 from potatotime.services.gcal import GoogleService
 from potatotime.services.outlook import MicrosoftService
 from potatotime.services.ical import AppleService
-from utils import TIMEZONE
+from utils import TIMEZONE, TEST_GOOGLE_USER_ID, TEST_MICROSOFT_USER_ID
 import datetime
 import pytz
 
 
 def test_raw_google_calendar():
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
     
     google_event_data = {
@@ -61,7 +61,7 @@ def test_raw_google_calendar():
 
 def test_google_calendar():
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
     
     google_event_data = StubEvent(
@@ -88,7 +88,7 @@ def test_google_calendar():
 
 def test_raw_microsoft_calendar():
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
     
     microsoft_event_data = {
@@ -124,7 +124,7 @@ def test_raw_microsoft_calendar():
 
 def test_microsoft_calendar():
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     microsoft_event_data = StubEvent(

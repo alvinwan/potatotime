@@ -56,10 +56,9 @@ class MicrosoftService(ServiceInterface):
         self.scopes = ['Calendars.ReadWrite', 'offline_access']
         self.event_serializer = _MicrosoftEventSerializer()
 
-    def authorize(self):
-        if os.path.exists('msft.json'):
-            with open('msft.json', 'r') as f:
-                credentials = json.loads(f.read())
+    def authorize(self, user_id: str, storage: Storage=FileStorage()):
+        if storage.has_user_credentials(user_id):
+            credentials = storage.get_user_credentials(user_id)
             self.access_token = credentials['access_token']
             self.refresh_token = credentials.get('refresh_token')
 
@@ -70,7 +69,7 @@ class MicrosoftService(ServiceInterface):
             }
 
             response = requests.get(url, headers=headers)
-            if response.status_code == 401 and 'access token expired' in response.text:
+            if response.status_code == 401:
                 # Access token might be expired, refresh it
                 self._refresh_access_token()
                 headers["Authorization"] = f"Bearer {self.access_token}"
@@ -84,11 +83,10 @@ class MicrosoftService(ServiceInterface):
         token_response = self._get_token(auth_code)
         self.access_token = token_response['access_token']
         self.refresh_token = token_response.get('refresh_token')
-        with open('msft.json', 'w') as f:
-            f.write(json.dumps({
-                'access_token': self.access_token,
-                'refresh_token': self.refresh_token
-            }))
+        storage.save_user_credentials(user_id, json.dumps({
+            'access_token': self.access_token,
+            'refresh_token': self.refresh_token
+        }))
 
     def _get_auth_code(self):
         auth_url = f'{self.authorization_endpoint}?client_id={self.client_id}&response_type=code&redirect_uri={self.redirect_uri}&scope={" ".join(self.scopes)}'

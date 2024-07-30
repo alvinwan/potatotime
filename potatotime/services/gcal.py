@@ -6,7 +6,8 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from potatotime.services import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from potatotime.storage import Storage, FileStorage
 from typing import Optional, List, Dict
 import pytz
 
@@ -58,18 +59,22 @@ class GoogleService(ServiceInterface):
         ]
         self.event_serializer = _GoogleEventSerializer()
 
-    def authorize(self):
+    def authorize(self, user_id: str, storage: Storage=FileStorage()):
         creds = None
-        if os.path.exists('goog.json'):
-            creds = Credentials.from_authorized_user_file('goog.json', self.scopes)
+        if storage.has_user_credentials(user_id):
+            creds = Credentials.from_authorized_user_info(
+                storage.get_user_credentials(user_id),
+                self.scopes,
+            )
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
+                # TODO: what if refresh fails?
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', self.scopes)
+                # TODO: replace str with constant
+                flow = InstalledAppFlow.from_client_config(storage.get_client_credentials('google'), self.scopes)
                 creds = flow.run_local_server(port=8080, access_type='offline', prompt='consent')
-            with open('goog.json', 'w') as token:
-                token.write(creds.to_json())
+            storage.save_user_credentials(user_id, creds.to_json())
         self.service = build('calendar', 'v3', credentials=creds)
 
     def list_calendars(self) -> List[Dict]:

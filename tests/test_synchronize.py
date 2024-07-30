@@ -2,7 +2,7 @@ from potatotime.services import StubEvent, CreatedEvent
 from potatotime.services.gcal import GoogleService
 from potatotime.services.outlook import MicrosoftService
 from potatotime.synchronize import synchronize
-from utils import TIMEZONE
+from utils import TIMEZONE, TEST_GOOGLE_USER_ID, TEST_MICROSOFT_USER_ID
 import datetime
 import pytz
 
@@ -12,11 +12,11 @@ def test_copy_event():
     Tests at a basic level that events are copied from one calendar to the other
     """
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -58,11 +58,11 @@ def test_copy_recurring_event():
     Tests that recurring events are copied over
     """
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -119,11 +119,11 @@ def test_copy_all_day_event():
     Tests that all/multi-day events are copied successfully
     """
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -167,11 +167,11 @@ def test_update_edited_event():
     Tests whether updates to edited events propagate to their sync'ed copies.
     """
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -234,11 +234,11 @@ def test_update_edited_event():
 
 def test_remove_deleted_event():
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -280,11 +280,11 @@ def test_already_copied_event_microsoft():
     PotatoTime and (b) the source event
     """
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -320,11 +320,11 @@ def test_already_copied_event_google():
     PotatoTime and (b) the source event
     """
     google_service = GoogleService()
-    google_service.authorize()
+    google_service.authorize(TEST_GOOGLE_USER_ID)
     google_calendar = google_service.get_calendar()
 
     microsoft_service = MicrosoftService()
-    microsoft_service.authorize()
+    microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
     assert len(google_calendar.get_events()) == 0
@@ -357,10 +357,10 @@ def test_already_copied_event_google():
 # # TODO: automate setting up then declining an event
 # def test_ignore_declined_google():
 #     google_service = GoogleService()
-#     google_service.authorize()
+#     google_service.authorize(TEST_GOOGLE_USER_ID)
 
 #     microsoft_service = MicrosoftService()
-#     microsoft_service.authorize()
+#     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
 #     microsoft_calendar = microsoft_service.get_calendar()
 
 #     assert len(microsoft_calendar.get_events()) == 0
@@ -372,10 +372,10 @@ def test_already_copied_event_google():
 # # # TODO: automate setting up then declining an event
 # def test_ignore_declined_microsoft():
 #     google_service = GoogleService()
-#     google_service.authorize()
+#     google_service.authorize(TEST_GOOGLE_USER_ID)
 
 #     microsoft_service = MicrosoftService()
-#     microsoft_service.authorize()
+#     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
 #     microsoft_calendar = microsoft_service.get_calendar()
 
 #     assert len(google_calendar.get_events()) == 0
