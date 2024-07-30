@@ -9,5 +9,5 @@ import os
 #
 TIMEZONE = pytz.timezone('US/Pacific')
 
-TEST_GOOGLE_USER_ID = os.environ.get('POTATOTIME_TEST_GOOGLE_USER_ID', 'default-google')
-TEST_MICROSOFT_USER_ID = os.environ.get('POTATOTIME_TEST_MICROSOFT_USER_ID', 'default-microsoft')
+TEST_GOOGLE_USER_ID = os.environ.get('POTATOTIME_TEST_GOOGLE_USER_ID', 'default_google')
+TEST_MICROSOFT_USER_ID = os.environ.get('POTATOTIME_TEST_MICROSOFT_USER_ID', 'default_microsoft')

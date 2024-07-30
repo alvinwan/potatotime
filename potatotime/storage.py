@@ -23,21 +23,43 @@ class Storage(ABC):
 
 
 class FileStorage(Storage):
-    TEMPLATE = "{user_id}.json"
+    TEMPLATE_USER = "potatotime_user_{user_id}.json"
+    TEMPLATE_CLIENT = "potatotime_client_{client_id}.json"
 
     def has_user_credentials(self, user_id: str) -> bool:
-        return os.path.exists(self.TEMPLATE.format(user_id=user_id))
+        return os.path.exists(self.TEMPLATE_USER.format(user_id=user_id))
 
     def get_user_credentials(self, user_id: str) -> Dict:
         if self.has_user_credentials(user_id):
-            with open(self.TEMPLATE.format(user_id=user_id)) as f:
+            with open(self.TEMPLATE_USER.format(user_id=user_id)) as f:
                 return json.loads(f.read())
-            
+
     def save_user_credentials(self, user_id: str, credentials: str):
         # TODO: json.dumps here, to be consistent?
-        with open(self.TEMPLATE.format(user_id=user_id), 'w') as f:
+        with open(self.TEMPLATE_USER.format(user_id=user_id), 'w') as f:
             f.write(credentials)
 
     def get_client_credentials(self, client_id: str):
-        with open(self.TEMPLATE.format(user_id=client_id)) as f:
+        with open(self.TEMPLATE_CLIENT.format(client_id=client_id)) as f:
             return json.loads(f.read())
+
+
+class EnvStorage(Storage):
+    """
+    Environment variables for holding credentials. Note that writes are not
+    supported.
+    """
+    TEMPLATE_USER = "POTATOTIME_USER_{user_id}"
+    TEMPLATE_CLIENT = "POTATOTIME_CLIENT_{client_id}"
+
+    def has_user_credentials(self, user_id: str) -> bool:
+        return self.TEMPLATE_USER.format(user_id=user_id) in os.environ
+
+    def get_user_credentials(self, user_id: str) -> Dict:
+        return json.loads(os.environ.get(self.TEMPLATE_USER.format(user_id=user_id), '{}'))
+
+    def save_user_credentials(self, user_id: str, credentials: str):
+        raise NotImplementedError('Writes are not implemented for EnvStorage')
+
+    def get_client_credentials(self, client_id: str):
+        return json.loads(os.environ.get(self.TEMPLATE_CLIENT.format(client_id=client_id), '{}'))
