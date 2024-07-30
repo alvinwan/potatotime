@@ -151,7 +151,7 @@ def test_microsoft_calendar():
 
 def test_raw_apple_calendar():
     apple_service = AppleService()
-    apple_service.authorize()
+    apple_service.authorize(None)  # user_id not currently used
     apple_calendar = apple_service.get_calendar()
     
     apple_event_data = {
@@ -180,7 +180,7 @@ def test_raw_apple_calendar():
 
 def test_apple_calendar():
     apple_service = AppleService()
-    apple_service.authorize()
+    apple_service.authorize(None)  # user_id not currently used
     apple_calendar = apple_service.get_calendar()
 
     apple_event_data = StubEvent(
