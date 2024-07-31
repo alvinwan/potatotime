@@ -156,6 +156,7 @@ class GoogleCalendar(CalendarInterface):
             event_data['extendedProperties'] = {'private': {'potatotime': source_event_id}}
         event_data['summary'] = POTATOTIME_EVENT_SUBJECT
         event_data['description'] = POTATOTIME_EVENT_DESCRIPTION
+        event_data['colorId'] = '8'  # Light gray color
         event = self.service.events().insert(calendarId='primary', body=event_data).execute()
         print(f'Event created: {event.get("htmlLink")}')
         return event
