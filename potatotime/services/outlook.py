@@ -52,12 +52,8 @@ class MicrosoftService(ServiceInterface):
         self.redirect_uri = 'http://localhost:8080'
         self.scopes = ['Calendars.ReadWrite']
         self.event_serializer = _MicrosoftEventSerializer()
+
         self.cache = SerializableTokenCache()
-
-        if os.path.exists('./potatotime_microsoft_cache.bin'):
-            with open('./potatotime_microsoft_cache.bin') as f:
-                self.cache.deserialize(f.read())
-
         self.app = ConfidentialClientApplication(
             self.client_id,
             authority='https://login.microsoftonline.com/common',
@@ -67,11 +63,13 @@ class MicrosoftService(ServiceInterface):
         self.access_token = None
 
     def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
-        self.access_token = None
-        user_id_to_account = account = {
-            account['username']: account
-            for account in self.app.get_accounts()
-        }
+        user_id_to_account = {}
+        if storage.has_user_credentials('microsoft'):
+            self.cache.deserialize(storage.get_user_credentials('microsoft'))
+            user_id_to_account = {
+                account['username']: account
+                for account in self.app.get_accounts()
+            }
         
         if user_id in user_id_to_account:
             account = user_id_to_account[user_id]
@@ -83,8 +81,8 @@ class MicrosoftService(ServiceInterface):
                     credentials['refresh_token'], scopes=self.scopes)
                 if 'access_token' in result:
                     self.access_token = result['access_token']
-            with open('./potatotime_microsoft_cache.bin', 'w') as f:
-                f.write(self.cache.serialize())
+            # TODO: use constant for global 'miscroft' name
+            storage.save_user_credentials('microsoft', self.cache.serialize())
 
         if not self.access_token and interactive:
             auth_url = self.app.get_authorization_request_url(self.scopes, redirect_uri=self.redirect_uri)
@@ -95,9 +93,7 @@ class MicrosoftService(ServiceInterface):
                 redirect_uri=self.redirect_uri
             )
             self.access_token = token_response['access_token']
-            # TODO: use storage somehow?
-            with open('./potatotime_microsoft_cache.bin', 'w') as f:
-                f.write(self.cache.serialize())
+            storage.save_user_credentials('microsoft', self.cache.serialize())
         
         if not self.access_token:
             raise Exception('No credentials found, or credentials are expired.')

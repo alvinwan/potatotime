@@ -10,6 +10,7 @@ from potatotime.services import ServiceInterface, CalendarInterface, EventSerial
 from potatotime.storage import Storage, FileStorage
 from typing import Optional, List, Dict
 import pytz
+import json
 
 
 class _GoogleEventSerializer(EventSerializer):
@@ -64,7 +65,7 @@ class GoogleService(ServiceInterface):
         creds = None
         if storage.has_user_credentials(user_id):
             creds = Credentials.from_authorized_user_info(
-                storage.get_user_credentials(user_id),
+                json.loads(storage.get_user_credentials(user_id)),
                 self.scopes,
             )
         if not creds or not creds.valid:

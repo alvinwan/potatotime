@@ -32,7 +32,7 @@ class FileStorage(Storage):
     def get_user_credentials(self, user_id: str) -> Dict:
         if self.has_user_credentials(user_id):
             with open(self.TEMPLATE_USER.format(user_id=user_id)) as f:
-                return json.loads(f.read())
+                return f.read()
 
     def save_user_credentials(self, user_id: str, credentials: str):
         # TODO: json.dumps here, to be consistent?
@@ -41,7 +41,7 @@ class FileStorage(Storage):
 
     def get_client_credentials(self, client_id: str):
         with open(self.TEMPLATE_CLIENT.format(client_id=client_id)) as f:
-            return json.loads(f.read())
+            return f.read()
 
 
 class EnvStorage(Storage):
@@ -56,10 +56,10 @@ class EnvStorage(Storage):
         return self.TEMPLATE_USER.format(user_id=user_id) in os.environ
 
     def get_user_credentials(self, user_id: str) -> Dict:
-        return json.loads(os.environ.get(self.TEMPLATE_USER.format(user_id=user_id), '{}'))
+        return os.environ.get(self.TEMPLATE_USER.format(user_id=user_id), '{}')
 
     def save_user_credentials(self, user_id: str, credentials: str):
         raise NotImplementedError('Writes are not implemented for EnvStorage')
 
     def get_client_credentials(self, client_id: str):
-        return json.loads(os.environ.get(self.TEMPLATE_CLIENT.format(client_id=client_id), '{}'))
+        return os.environ.get(self.TEMPLATE_CLIENT.format(client_id=client_id), '{}')
