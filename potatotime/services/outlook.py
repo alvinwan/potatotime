@@ -9,6 +9,7 @@ import pytz
 from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 from potatotime.storage import Storage, FileStorage
 from typing import Optional, List, Dict
+from msal import ConfidentialClientApplication, SerializableTokenCache
 
 
 class _MicrosoftEventSerializer(EventSerializer):
@@ -51,88 +52,63 @@ class MicrosoftService(ServiceInterface):
         self.client_id = os.environ['POTATOTIME_MSFT_CLIENT_ID']
         self.client_secret = os.environ['POTATOTIME_MSFT_CLIENT_SECRET']
         self.redirect_uri = 'http://localhost:8080'
-        self.authorization_endpoint = f'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
-        self.token_endpoint = f'https://login.microsoftonline.com/common/oauth2/v2.0/token'
-        self.scopes = ['Calendars.ReadWrite', 'offline_access']
+        self.scopes = ['Calendars.ReadWrite']
         self.event_serializer = _MicrosoftEventSerializer()
+        self.cache = SerializableTokenCache()
+
+        if os.path.exists('./potatotime_microsoft_cache.bin'):
+            with open('./potatotime_microsoft_cache.bin') as f:
+                self.cache.deserialize(f.read())
+
+        self.app = ConfidentialClientApplication(
+            self.client_id,
+            authority='https://login.microsoftonline.com/common',
+            client_credential=self.client_secret,
+            token_cache=self.cache,
+        )
+        self.access_token = None
 
     def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
-        # TODO: This needs some major refactoring
         self.access_token = None
-        if storage.has_user_credentials(user_id):
-            credentials = storage.get_user_credentials(user_id)
-            self.access_token = credentials['access_token']
-            self.refresh_token = credentials.get('refresh_token')
-
-        # Try to use the access token
-        url = "https://graph.microsoft.com/v1.0/me/events"
-        headers = {
-            "Authorization": f"Bearer {self.access_token}"
+        user_id_to_account = account = {
+            account['username']: account
+            for account in self.app.get_accounts()
         }
-
-        response = requests.get(url, headers=headers)
         
-        if not self.access_token or response.status_code != 200:
-            if self.refresh_token and response.status_code == 401:
-                # Access token might be expired, refresh it
-                self._refresh_access_token()
-            elif interactive:
-                # If no valid access token or refresh token, start authorization flow
-                auth_code = self._get_auth_code()
-                token_response = self._get_token(auth_code)
-                self.access_token = token_response['access_token']
-                self.refresh_token = token_response.get('refresh_token')
+        if user_id in user_id_to_account:
+            account = user_id_to_account[user_id]
+            result = self.app.acquire_token_silent(self.scopes, account)
+            if 'access_token' in result:
+                self.access_token = result['access_token']
+            else:
+                result = self.app.acquire_token_by_refresh_token(
+                    credentials['refresh_token'], scopes=self.scopes)
+                if 'access_token' in result:
+                    self.access_token = result['access_token']
+            with open('./potatotime_microsoft_cache.bin', 'w') as f:
+                f.write(self.cache.serialize())
 
-            try:
-                storage.save_user_credentials(user_id, json.dumps({
-                    'access_token': self.access_token,
-                    'refresh_token': self.refresh_token
-                }))
-            except Exception as e:
-                print(f"Failed to save updated credentials: {e}")
-
-            if not self.access_token:
-                raise Exception('No credentials found, or credentials are expired.')
+        if not self.access_token and interactive:
+            auth_code = self._get_auth_code()
+            token_response = self.app.acquire_token_by_authorization_code(
+                auth_code,
+                scopes=self.scopes,
+                redirect_uri=self.redirect_uri
+            )
+            self.access_token = token_response['access_token']
+            # TODO: use storage somehow?
+            with open('./potatotime_microsoft_cache.bin', 'w') as f:
+                f.write(self.cache.serialize())
+        
+        if not self.access_token:
+            raise Exception('No credentials found, or credentials are expired.')
 
     def _get_auth_code(self):
-        auth_url = f'{self.authorization_endpoint}?client_id={self.client_id}&response_type=code&redirect_uri={self.redirect_uri}&scope={" ".join(self.scopes)}'
+        auth_url = self.app.get_authorization_request_url(self.scopes, redirect_uri=self.redirect_uri)
         webbrowser.open(auth_url)
         httpd = HTTPServer(('localhost', 8080), OAuthHandler)
         httpd.handle_request()
         return httpd.auth_code
-
-    def _get_token(self, auth_code):
-        data = {
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'grant_type': 'authorization_code',
-            'code': auth_code,
-            'redirect_uri': self.redirect_uri,
-            'scope': ' '.join(self.scopes),
-        }
-        response = requests.post(self.token_endpoint, data=data)
-        response.raise_for_status()
-        return response.json()
-    
-    def _refresh_token(self, refresh_token):
-        data = {
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'grant_type': 'refresh_token',
-            'refresh_token': refresh_token,
-            'scope': ' '.join(self.scopes),
-        }
-        response = requests.post(self.token_endpoint, data=data)
-        response.raise_for_status()
-        return response.json()
-    
-    def _refresh_access_token(self):
-        if not hasattr(self, 'refresh_token'):
-            raise ValueError("No refresh token available. Please authenticate first.")
-        token_response = self._refresh_token(self.refresh_token)
-        self.access_token = token_response.get('access_token')
-        self.refresh_token = token_response.get('refresh_token', self.refresh_token)
-        return token_response
     
     def list_calendars(self) -> List[Dict]:
         url = "https://graph.microsoft.com/v1.0/me/calendars"
