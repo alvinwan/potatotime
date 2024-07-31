@@ -201,13 +201,3 @@ def test_apple_calendar():
         print(event.id, event.start, event.end)
 
     apple_calendar.delete_event(apple_event)
-
-
-if __name__ == '__main__':
-    # TODO: make these into real tests
-    test_raw_google_calendar()
-    test_google_calendar()
-    test_raw_microsoft_calendar()
-    test_microsoft_calendar()
-    test_raw_apple_calendar()
-    test_apple_calendar()

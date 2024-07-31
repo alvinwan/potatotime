@@ -382,17 +382,3 @@ def test_already_copied_event_google():
 
 #     new_events, _ = synchronize([google_calendar, microsoft_calendar])
 #     assert len(new_events[(0, 1)] + new_events[(1, 0)]) == 0, f"Expected 0 sync'ed events. Got: {len(new_events)}"
-
-
-if __name__ == '__main__':
-    test_copy_event()
-    test_copy_recurring_event()
-    test_copy_all_day_event()
-    test_remove_deleted_event()
-    test_update_edited_event()
-    test_already_copied_event_microsoft()
-    test_already_copied_event_google()
-
-    # TODO: finish these tests
-    # test_ignore_declined_google() # Need to finish writing test
-    # test_ignore_declined_microsoft() # Need to get working

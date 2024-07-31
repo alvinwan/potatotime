@@ -6,3 +6,5 @@ google-auth-httplib2
 google-auth-oauthlib
 pytz
 msal
+pytest
+pytest-cov
