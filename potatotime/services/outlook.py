@@ -63,16 +63,16 @@ class MicrosoftService(ServiceInterface):
         self.access_token = None
 
     def authorize(self, user_id: str, storage: Storage=FileStorage(), interactive: bool=True):
-        user_id_to_account = {}
-        if storage.has_user_credentials('microsoft'):
-            self.cache.deserialize(storage.get_user_credentials('microsoft'))
-            user_id_to_account = {
-                account['username']: account
-                for account in self.app.get_accounts()
-            }
-        
-        if user_id in user_id_to_account:
-            account = user_id_to_account[user_id]
+        accounts = []
+        if storage.has_user_credentials(user_id):
+            # NOTE: Technically, this one cache should be used to globally
+            # contain all accounts. 'Sharding' cache across files in case there
+            # are many accounts.
+            self.cache.deserialize(storage.get_user_credentials(user_id))
+            accounts = self.app.get_accounts()
+            
+        if accounts:
+            account = accounts[0]  # assumes only one account per
             result = self.app.acquire_token_silent(self.scopes, account)
             if 'access_token' in result:
                 self.access_token = result['access_token']
@@ -82,7 +82,7 @@ class MicrosoftService(ServiceInterface):
                 if 'access_token' in result:
                     self.access_token = result['access_token']
             # TODO: use constant for global 'miscroft' name
-            storage.save_user_credentials('microsoft', self.cache.serialize())
+            storage.save_user_credentials(user_id, self.cache.serialize())
 
         if not self.access_token and interactive:
             auth_url = self.app.get_authorization_request_url(self.scopes, redirect_uri=self.redirect_uri)
@@ -93,7 +93,7 @@ class MicrosoftService(ServiceInterface):
                 redirect_uri=self.redirect_uri
             )
             self.access_token = token_response['access_token']
-            storage.save_user_credentials('microsoft', self.cache.serialize())
+            storage.save_user_credentials(user_id, self.cache.serialize())
         
         if not self.access_token:
             raise Exception('No credentials found, or credentials are expired.')
