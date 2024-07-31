@@ -73,15 +73,8 @@ class MicrosoftService(ServiceInterface):
             
         if accounts:
             account = accounts[0]  # assumes only one account per
-            result = self.app.acquire_token_silent(self.scopes, account)
-            if 'access_token' in result:
-                self.access_token = result['access_token']
-            else:
-                result = self.app.acquire_token_by_refresh_token(
-                    credentials['refresh_token'], scopes=self.scopes)
-                if 'access_token' in result:
-                    self.access_token = result['access_token']
-            # TODO: use constant for global 'miscroft' name
+            result = self.app.acquire_token_silent(self.scopes, account)  # handles refreshing access token
+            self.access_token = result['access_token']
             storage.save_user_credentials(user_id, self.cache.serialize())
 
         if not self.access_token and interactive:
