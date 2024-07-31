@@ -72,10 +72,12 @@ class GoogleService(ServiceInterface):
                 # TODO: what if refresh fails?
                 creds.refresh(Request())
             elif interactive:
-                # TODO: replace str with constant
+                # TODO: replace str 'google' with constant
                 flow = InstalledAppFlow.from_client_config(storage.get_client_credentials('google'), self.scopes)
-                creds = flow.run_local_server(port=8080, access_type='offline', prompt='consent')
-
+                auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
+                auth_code = get_auth_code(auth_url, port=8080)
+                flow.fetch_token(code=auth_code)
+                creds = flow.credentials
             try:
                 storage.save_user_credentials(user_id, creds.to_json())
             except Exception as e:

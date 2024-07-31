@@ -1,8 +1,5 @@
 import os
-import webbrowser
 import requests
-from urllib.parse import urlparse, parse_qs
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import datetime
 import pytz
@@ -10,6 +7,7 @@ from . import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, P
 from potatotime.storage import Storage, FileStorage
 from typing import Optional, List, Dict
 from msal import ConfidentialClientApplication, SerializableTokenCache
+from .auth import get_auth_code
 
 
 class _MicrosoftEventSerializer(EventSerializer):
@@ -89,7 +87,8 @@ class MicrosoftService(ServiceInterface):
                 f.write(self.cache.serialize())
 
         if not self.access_token and interactive:
-            auth_code = self._get_auth_code()
+            auth_url = self.app.get_authorization_request_url(self.scopes, redirect_uri=self.redirect_uri)
+            auth_code = get_auth_code(auth_url)
             token_response = self.app.acquire_token_by_authorization_code(
                 auth_code,
                 scopes=self.scopes,
@@ -102,13 +101,6 @@ class MicrosoftService(ServiceInterface):
         
         if not self.access_token:
             raise Exception('No credentials found, or credentials are expired.')
-
-    def _get_auth_code(self):
-        auth_url = self.app.get_authorization_request_url(self.scopes, redirect_uri=self.redirect_uri)
-        webbrowser.open(auth_url)
-        httpd = HTTPServer(('localhost', 8080), OAuthHandler)
-        httpd.handle_request()
-        return httpd.auth_code
     
     def list_calendars(self) -> List[Dict]:
         url = "https://graph.microsoft.com/v1.0/me/calendars"
@@ -230,19 +222,3 @@ class MicrosoftCalendar(CalendarInterface):
         response.raise_for_status()
         print(f'Event "{event_id}" deleted.')
         return response.status_code
-
-class OAuthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        parsed_url = urlparse(self.path)
-        query_params = parse_qs(parsed_url.query)
-        if 'code' in query_params:
-            self.server.auth_code = query_params['code'][0]
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(b'You can close this window now.')
-        else:
-            self.send_response(400)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(b'Authorization failed.')
