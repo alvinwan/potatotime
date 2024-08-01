@@ -7,6 +7,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from potatotime.services import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
+from potatotime.services.auth import get_auth_code
 from potatotime.storage import Storage, FileStorage
 from typing import Optional, List, Dict
 import pytz
@@ -74,7 +75,11 @@ class GoogleService(ServiceInterface):
                 creds.refresh(Request())
             elif interactive:
                 # TODO: replace str 'google' with constant
-                flow = InstalledAppFlow.from_client_config(storage.get_client_credentials('google'), self.scopes)
+                flow = InstalledAppFlow.from_client_config(
+                    json.loads(storage.get_client_credentials('google')),
+                    self.scopes
+                )
+                flow.redirect_uri = 'http://localhost:8080/'
                 auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
                 auth_code = get_auth_code(auth_url, port=8080)
                 flow.fetch_token(code=auth_code)
@@ -179,3 +184,8 @@ class GoogleCalendar(CalendarInterface):
             print(f'Event "{event_id}" deleted.')
         except errors.HttpError as error:
             print(f'An error occurred: {error}')
+
+
+if __name__ == '__main__':
+    service = GoogleService()
+    service.authorize('default_google')  # TODO: use constant for user_id
