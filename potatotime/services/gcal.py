@@ -55,6 +55,7 @@ class GoogleService(ServiceInterface):
         # If modifying these SCOPES, delete the file goog.json.
         self.scopes = [
             "openid",
+            "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/calendar.events",
             "https://www.googleapis.com/auth/calendar.readonly",
@@ -79,9 +80,9 @@ class GoogleService(ServiceInterface):
                     json.loads(storage.get_client_credentials('google')),
                     self.scopes
                 )
-                flow.redirect_uri = 'http://localhost:8080/'
+                flow.redirect_uri = 'http://localhost:5173/'
                 auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
-                auth_code = get_auth_code(auth_url, port=8080)
+                auth_code = get_auth_code(auth_url, port=5173)
                 flow.fetch_token(code=auth_code)
                 creds = flow.credentials
             try:
