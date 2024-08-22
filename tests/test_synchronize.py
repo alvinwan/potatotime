@@ -7,6 +7,20 @@ import datetime
 import pytz
 
 
+NOW = datetime.datetime.now().replace(second=0, microsecond=0)
+TMW_START = NOW + datetime.timedelta(days=1)
+TMW_END = NOW + datetime.timedelta(days=1, hours=1)
+DAT_START = NOW + datetime.timedelta(days=2) # "Day After Tomorrow" xD
+DAT_END = NOW + datetime.timedelta(days=2, hours=1)
+TMW_DAY = TMW_START.replace(hour=0, minute=0, second=0, microsecond=0)
+DAT_DAY = DAT_START.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def check_clean_calendar(calendar):
+    # Check the next few days are clean. Just a degenerate check for tests
+    assert len(calendar.get_events(max_events=1, end=datetime.datetime.now() + datetime.timedelta(days=3))) == 0
+
+
 def test_copy_event():
     """
     Tests at a basic level that events are copied from one calendar to the other
@@ -19,26 +33,26 @@ def test_copy_event():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     google_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        start=TIMEZONE.localize(TMW_START),
+        end=TIMEZONE.localize(TMW_END),
         is_all_day=False,
     ).serialize(google_calendar.event_serializer)
     google_event_data = google_calendar.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_calendar.event_serializer)
 
     microsoft_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        start=TIMEZONE.localize(DAT_START),
+        end=TIMEZONE.localize(DAT_END),
         is_all_day=False,
     ).serialize(microsoft_calendar.event_serializer)
     microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
 
-    new_events, _ = synchronize([google_calendar, microsoft_calendar])
+    new_events, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     google_calendar.delete_event(google_event.id, is_copy=False)
     for event in new_events[(1, 0)]:
@@ -65,12 +79,12 @@ def test_copy_recurring_event():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     google_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        start=TIMEZONE.localize(TMW_START),
+        end=TIMEZONE.localize(TMW_END),
         is_all_day=False,
     ).serialize(google_calendar.event_serializer)
     google_event_data['recurrence'] = ['RRULE:FREQ=WEEKLY;COUNT=2']
@@ -78,27 +92,28 @@ def test_copy_recurring_event():
     google_event = CreatedEvent.deserialize(google_event_data, google_calendar.event_serializer)
 
     microsoft_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        start=TIMEZONE.localize(DAT_START),
+        end=TIMEZONE.localize(DAT_END),
         is_all_day=False,
     ).serialize(microsoft_calendar.event_serializer)
+    dotw = DAT_START.strftime("%A").lower()
     microsoft_event_data['recurrence'] = {
         "pattern": {
             "type": "weekly",
             "interval": 1,  # Every week
-            "daysOfWeek": ["friday"],  # Adjust based on the actual start day of the event
-            "firstDayOfWeek": "friday"
+            "daysOfWeek": [dotw],
+            "firstDayOfWeek": dotw,
         },
         "range": {
             "type": "numbered",
             "numberOfOccurrences": 2,
-            "startDate": "2024-08-02"
+            "startDate": DAT_START.strftime("%Y-%m-%d"),
         }
     }
     microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
 
-    new_events, _ = synchronize([google_calendar, microsoft_calendar])
+    new_events, _ =synchronize([google_calendar, microsoft_calendar], max_days=14) # include next two occurrences
 
     google_calendar.delete_event(google_event.id, is_copy=False)
     for event in new_events[(1, 0)]:
@@ -126,12 +141,12 @@ def test_copy_all_day_event():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     google_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 0, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 3, 0, 0, 0)),
+        start=TIMEZONE.localize(TMW_DAY),
+        end=TIMEZONE.localize(TMW_DAY + datetime.timedelta(days=1)),
         is_all_day=True,
     ).serialize(google_calendar.event_serializer)
     google_event_data = google_calendar.create_event(google_event_data, source_event_id=None)
@@ -140,14 +155,14 @@ def test_copy_all_day_event():
     # NOTE: Microsoft needs date-aligned datetimes in order for all-day event
     # creation to succeed.
     microsoft_event_data = StubEvent(
-        start=datetime.datetime(2024, 8, 2, 0, 0, 0, tzinfo=pytz.utc),
-        end=datetime.datetime(2024, 8, 4, 0, 0, 0, tzinfo=pytz.utc),
+        start=datetime.datetime(DAT_DAY.year, DAT_DAY.month, DAT_DAY.day, 0, 0, 0, tzinfo=pytz.utc),
+        end=datetime.datetime(DAT_DAY.year, DAT_DAY.month, DAT_DAY.day + 1, 0, 0, 0, tzinfo=pytz.utc),
         is_all_day=True,
     ).serialize(microsoft_calendar.event_serializer)
     microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
 
-    new_events, _ = synchronize([google_calendar, microsoft_calendar])
+    new_events, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     google_calendar.delete_event(google_event.id, is_copy=False)
     for event in new_events[(1, 0)]:
@@ -174,62 +189,62 @@ def test_update_edited_event():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     google_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        start=TIMEZONE.localize(TMW_START),
+        end=TIMEZONE.localize(TMW_END),
         is_all_day=False,
     ).serialize(google_calendar.event_serializer)
     google_event_data = google_calendar.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_calendar.event_serializer)
 
     microsoft_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        start=TIMEZONE.localize(DAT_START),
+        end=TIMEZONE.localize(DAT_END),
         is_all_day=False,
     ).serialize(microsoft_calendar.event_serializer)
     microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
 
-    new_events1, updated_events1 = synchronize([google_calendar, microsoft_calendar])
+    new_events1, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     google_update_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 3, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 3, 11, 0, 0)),
+        start=TIMEZONE.localize(DAT_START),
+        end=TIMEZONE.localize(DAT_END),
         is_all_day=False,
     ).serialize(google_calendar.event_serializer)
     google_update_data = google_calendar.update_event(google_event.id, google_update_data, is_copy=False)
     google_update = CreatedEvent.deserialize(google_update_data, google_calendar.event_serializer)
 
     microsoft_update_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 4, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 4, 11, 0, 0)),
+        start=TIMEZONE.localize(TMW_START),
+        end=TIMEZONE.localize(TMW_END),
         is_all_day=False,
     ).serialize(microsoft_calendar.event_serializer)
     microsoft_update_data = microsoft_calendar.update_event(microsoft_event.id, microsoft_update_data)
     microsoft_update = CreatedEvent.deserialize(microsoft_update_data, microsoft_calendar.event_serializer)
 
-    new_events2, updated_events2 = synchronize([google_calendar, microsoft_calendar])
+    created2, updated2, deleted2 = synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     google_calendar.delete_event(google_event.id, is_copy=False)
-    for event in new_events1[(1, 0)] + new_events2[(1, 0)]:
+    for event in new_events1[(1, 0)] + created2[(1, 0)]:
         google_calendar.delete_event(event.id)
 
     microsoft_calendar.delete_event(microsoft_event.id)
-    for event in new_events1[(0, 1)] + new_events2[(0, 1)]:
+    for event in new_events1[(0, 1)] + created2[(0, 1)]:
         microsoft_calendar.delete_event(event.id)
 
     # Check that update from Google to Microsoft calendar worked
     assert len(new_events1[(0, 1)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
-    assert len(updated_events2[(0, 1)]) == 1, f"Expected 1 updated events. Got: {len(new_events1[(0, 1)])}"
-    assert StubEvent.from_(updated_events2[(0, 1)][0]) == StubEvent.from_(google_update)
+    assert len(updated2[(0, 1)]) == 1, f"Expected 1 updated events. Got: {len(updated2[(0, 1)])}"
+    assert StubEvent.from_(updated2[(0, 1)][0]) == StubEvent.from_(google_update)
 
     # Check that update from Microsoft to Google calendar worked
     assert len(new_events1[(1, 0)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
-    assert len(updated_events2[(1, 0)]) == 1, f"Expected 1 updated events. Got: {len(new_events1[(0, 1)])}"
-    assert StubEvent.from_(updated_events2[(1, 0)][0]) == StubEvent.from_(microsoft_update)
+    assert len(updated2[(1, 0)]) == 1, f"Expected 1 updated events. Got: {len(updated2[(0, 1)])}"
+    assert StubEvent.from_(updated2[(1, 0)][0]) == StubEvent.from_(microsoft_update)
 
 
 def test_remove_deleted_event():
@@ -241,37 +256,37 @@ def test_remove_deleted_event():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     google_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        start=TIMEZONE.localize(TMW_START),
+        end=TIMEZONE.localize(TMW_END),
         is_all_day=False,
     ).serialize(google_calendar.event_serializer)
     google_event_data = google_calendar.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_calendar.event_serializer)
 
     microsoft_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        start=TIMEZONE.localize(DAT_START),
+        end=TIMEZONE.localize(DAT_END),
         is_all_day=False,
     ).serialize(microsoft_calendar.event_serializer)
     microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
 
-    new_events1, _ = synchronize([google_calendar, microsoft_calendar])
+    new_events1, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     google_calendar.delete_event(google_event.id, is_copy=False)
     microsoft_calendar.delete_event(microsoft_event.id)
 
-    synchronize([google_calendar, microsoft_calendar])
+    synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     # Check that update from Google to Microsoft calendar worked
     assert len(new_events1[(0, 1)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
     assert len(new_events1[(1, 0)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
 
 def test_already_copied_event_microsoft():
@@ -287,19 +302,19 @@ def test_already_copied_event_microsoft():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     google_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 1, 11, 0, 0)),
+        start=TIMEZONE.localize(TMW_START),
+        end=TIMEZONE.localize(TMW_END),
         is_all_day=False,
     ).serialize(google_calendar.event_serializer)
     google_event_data = google_calendar.create_event(google_event_data, source_event_id=None)
     google_event = CreatedEvent.deserialize(google_event_data, google_calendar.event_serializer)
 
-    new_events1, _ = synchronize([google_calendar, microsoft_calendar])
-    new_events2, _ = synchronize([google_calendar, microsoft_calendar])
+    new_events1, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
+    new_events2, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 
     google_calendar.delete_event(google_event.id, is_copy=False)
     for event in new_events1[(1, 0)] + new_events2[(1, 0)]:
@@ -327,19 +342,19 @@ def test_already_copied_event_google():
     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
     microsoft_calendar = microsoft_service.get_calendar()
 
-    assert len(google_calendar.get_events()) == 0
-    assert len(microsoft_calendar.get_events()) == 0
+    check_clean_calendar(google_calendar)
+    check_clean_calendar(microsoft_calendar)
 
     microsoft_event_data = StubEvent(
-        start=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 10, 0, 0)),
-        end=TIMEZONE.localize(datetime.datetime(2024, 8, 2, 11, 0, 0)),
+        start=TIMEZONE.localize(DAT_START),
+        end=TIMEZONE.localize(DAT_END),
         is_all_day=False,
     ).serialize(microsoft_calendar.event_serializer)
     microsoft_event_data = microsoft_calendar.create_event(microsoft_event_data, source_event_id=None)
     microsoft_event = CreatedEvent.deserialize(microsoft_event_data, microsoft_calendar.event_serializer)
 
-    new_events1, _ = synchronize([microsoft_calendar, google_calendar])
-    new_events2, _ = synchronize([microsoft_calendar, google_calendar])
+    new_events1, _ =synchronize([microsoft_calendar, google_calendar], max_days=3)
+    new_events2, _ =synchronize([microsoft_calendar, google_calendar], max_days=3)
 
     microsoft_calendar.delete_event(microsoft_event.id)
     for event in new_events1[(1, 0)] + new_events2[(1, 0)]:
@@ -363,9 +378,9 @@ def test_already_copied_event_google():
 #     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
 #     microsoft_calendar = microsoft_service.get_calendar()
 
-#     assert len(microsoft_calendar.get_events()) == 0
+#     check_clean_calendar(microsoft_calendar)
 
-#     new_events, _ = synchronize([google_calendar, microsoft_calendar])
+#     new_events, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 #     assert len(new_events[(0, 1)] + new_events[(1, 0)]) == 0, f"Expected 0 sync'ed events. Got: {len(new_events)}"
 
 
@@ -378,7 +393,7 @@ def test_already_copied_event_google():
 #     microsoft_service.authorize(TEST_MICROSOFT_USER_ID)
 #     microsoft_calendar = microsoft_service.get_calendar()
 
-#     assert len(google_calendar.get_events()) == 0
+#     check_clean_calendar(google_calendar)
 
-#     new_events, _ = synchronize([google_calendar, microsoft_calendar])
+#     new_events, _ =synchronize([google_calendar, microsoft_calendar], max_days=3)
 #     assert len(new_events[(0, 1)] + new_events[(1, 0)]) == 0, f"Expected 0 sync'ed events. Got: {len(new_events)}"
