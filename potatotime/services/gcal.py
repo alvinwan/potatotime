@@ -72,7 +72,8 @@ class GoogleService(ServiceInterface):
             )
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                # TODO: what if refresh fails?
+                # TODO: what if refresh fails? Get an exception. Maybe instead
+                # gracefully default to interactive?
                 creds.refresh(Request())
             elif interactive:
                 # TODO: replace str 'google' with constant

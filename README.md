@@ -1,4 +1,5 @@
-# onpotatotime
+# PotatoTime
+
 Synchronize events across calendars
 
 ```
