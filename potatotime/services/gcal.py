@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 from potatotime.services import ServiceInterface, CalendarInterface, EventSerializer, BaseEvent, POTATOTIME_EVENT_SUBJECT, POTATOTIME_EVENT_DESCRIPTION
 from potatotime.services.auth import get_auth_code
 from potatotime.storage import Storage, FileStorage
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 import pytz
 import json
 
@@ -176,9 +176,15 @@ class GoogleCalendar(CalendarInterface):
         print(f'Event updated: {updated_event.get("htmlLink")}')
         return updated_event
 
-    def delete_event(self, event_id, is_copy: bool=True):
-        if is_copy:  # NOTE: Should only be False during testing
+    def delete_event(self, event_or_event_id: Union[str, dict], is_copy: bool=True):
+        # TODO: Only this gcal implementation supports raw event_data dict. Update interface
+        if isinstance(event_or_event_id, dict):
+            event = event_or_event_id
+            event_id = event['id']
+        else:
+            event_id = event_or_event_id
             event = self.service.events().get(calendarId='primary', eventId=event_id).execute()
+        if is_copy:  # NOTE: Should only be False during testing
             assert 'potatotime' in event.get('extendedProperties', {}).get('private', {})
         try:
             self.service.events().delete(calendarId='primary', eventId=event_id).execute()
