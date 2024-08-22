@@ -18,13 +18,14 @@ def synchronize(
         for calendar in calendars
     ]
 
-    new_events, updated_events = {}, {}
+    created, updated, deleted = {}, {}, {}
     for i in range(len(calendars)):
         for j in range(len(calendars)):
             if i == j:
                 continue
-            new_events[(i, j)], updated_events[(i, j)] = synchronize_from_to(calendars[i], calendars_events[i], calendars[j], calendars_events[j])
-    return new_events, updated_events
+            created[(i, j)], updated[(i, j)], deleted[(i, j)] = \
+                synchronize_from_to(calendars[i], calendars_events[i], calendars[j], calendars_events[j])
+    return created, updated, deleted
 
 
 def synchronize_from_to(
@@ -38,8 +39,7 @@ def synchronize_from_to(
         if event.source_event_id
     }
 
-    new_events = []
-    updated_events = []
+    created, updated, deleted = [], [], []
     for event1 in events1:
         # Handle edited events
         if event1.id in source_event_ids:  # events already sync'ed
@@ -52,7 +52,7 @@ def synchronize_from_to(
             copy_data = orig_stub.serialize(calendar2.event_serializer)
             copy_data = calendar2.update_event(event2.id, copy_data)
             copy = ExtendedEvent.deserialize(copy_data, calendar2.event_serializer)
-            updated_events.append(copy)
+            updated.append(copy)
 
         # Handle newly-created events
         if (  # Do not copy any of the following events
@@ -64,10 +64,11 @@ def synchronize_from_to(
         copy2_data = StubEvent.from_(event1).serialize(calendar2.event_serializer)
         copy2_data = calendar2.create_event(copy2_data, source_event_id=event1.id)
         copy2 = ExtendedEvent.deserialize(copy2_data, calendar2.event_serializer)
-        new_events.append(copy2)
+        created.append(copy2)
 
     # Handle deleted events
     for event in source_event_ids.values():
+        deleted.append(event)
         calendar2.delete_event(event.id)
 
-    return new_events, updated_events
+    return created, updated, deleted
