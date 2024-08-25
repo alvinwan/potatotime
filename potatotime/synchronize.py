@@ -53,6 +53,7 @@ def synchronize_from_to(
             copy_data = calendar2.update_event(event2.id, copy_data)
             copy = ExtendedEvent.deserialize(copy_data, calendar2.event_serializer)
             updated.append(copy)
+            continue
 
         # Handle newly-created events
         if (  # Do not copy any of the following events

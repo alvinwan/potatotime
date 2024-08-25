@@ -239,11 +239,13 @@ def test_update_edited_event():
     # Check that update from Google to Microsoft calendar worked
     assert len(new_events1[(0, 1)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
     assert len(updated2[(0, 1)]) == 1, f"Expected 1 updated events. Got: {len(updated2[(0, 1)])}"
+    assert len(created2[(0, 1)]) == 0, f"Expected 0 created events. Got: {len(created2[(0, 1)])}"
     assert StubEvent.from_(updated2[(0, 1)][0]) == StubEvent.from_(google_update)
 
     # Check that update from Microsoft to Google calendar worked
     assert len(new_events1[(1, 0)]) == 1, f"Expected 1 sync'ed events. Got: {len(new_events1[(0, 1)])}"
     assert len(updated2[(1, 0)]) == 1, f"Expected 1 updated events. Got: {len(updated2[(0, 1)])}"
+    assert len(created2[(1, 0)]) == 0, f"Expected 0 created events. Got: {len(created2[(0, 1)])}"
     assert StubEvent.from_(updated2[(1, 0)][0]) == StubEvent.from_(microsoft_update)
 
 
