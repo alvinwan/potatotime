@@ -29,3 +29,8 @@ test = [
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["tests*"]
+
+[project.urls]
+Homepage = "https://github.com/alvinwan/potatotime"
+Repository = "https://github.com/alvinwan/potatotime"
+Issues = "https://github.com/alvinwan/potatotime/issues"
