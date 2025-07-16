@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "potatotime"
-version = "0.0.5"
-description = "Synchronize events across calendars"
+version = "0.0.6"
+description = "Synchronize events between Google, Outlook, and iCal."
 readme = "README.md"
 authors = [{name = "Alvin Wan"}]
 requires-python = ">=3.8"

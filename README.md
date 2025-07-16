@@ -2,9 +2,8 @@
 
 Synchronize events between Google, Outlook, and iCal.
 
-
 ```bash
-pip install -e .
+pip install potatotime
 ```
 
 ## Quickstart
