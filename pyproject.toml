@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "potatotime"
+version = "0.0.5"
+description = "Synchronize events across calendars"
+readme = "README.md"
+authors = [{name = "Alvin Wan"}]
+requires-python = ">=3.8"
+dependencies = [
+    "oauth2client",
+    "caldav",
+    "requests",
+    "google-api-python-client",
+    "google-auth-httplib2",
+    "google-auth-oauthlib",
+    "pytz",
+    "msal",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*"]
